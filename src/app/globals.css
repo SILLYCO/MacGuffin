@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer base {
+  :root {
+    --background: 220 35% 97%;
+    --foreground: 224 71% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 8%;
+
+    --primary: 224 82% 56%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 220 20% 93%;
+    --secondary-foreground: 224 71% 12%;
+
+    --muted: 220 20% 93%;
+    --muted-foreground: 220 15% 46%;
+
+    --accent: 220 20% 93%;
+    --accent-foreground: 224 71% 12%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 18% 88%;
+    --input: 220 18% 88%;
+    --ring: 224 82% 56%;
+
+    --radius: 0.85rem;
+  }
+
+  .dark {
+    --background: 228 35% 5%;
+    --foreground: 210 40% 98%;
+
+    --card: 228 30% 9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 228 30% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 225 22% 14%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 225 22% 14%;
+    --muted-foreground: 217.9 15% 65%;
+
+    --accent: 225 22% 14%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 225 20% 16%;
+    --input: 225 20% 16%;
+    --ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  code, kbd, samp, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary min-h-screen relative;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.07) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+}
+
+/* Custom Glassmorphism & Cyber Utilities */
+.glass-card {
+  @apply bg-card/75 backdrop-blur-xl border border-border/70 shadow-sm rounded-2xl transition-all duration-300;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+}
+
+.glass-card-interactive {
+  @apply glass-card hover:border-primary/40 hover:bg-card/90 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 transition-all duration-300;
+}
+
+.glass-header {
+  @apply bg-background/70 backdrop-blur-xl border-b border-border/70 sticky top-0 z-30;
+}
+
+.glow-pill-emerald {
+  box-shadow: 0 0 12px -2px rgba(16, 185, 129, 0.35);
+}
+
+.glow-pill-blue {
+  box-shadow: 0 0 12px -2px rgba(59, 130, 246, 0.35);
+}
+
+.glow-pill-amber {
+  box-shadow: 0 0 12px -2px rgba(245, 158, 11, 0.35);
+}
+
+.glow-pill-purple {
+  box-shadow: 0 0 12px -2px rgba(168, 85, 247, 0.35);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.4);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Pulse animation for live status indicators */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.15);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
