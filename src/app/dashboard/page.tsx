@@ -26,22 +26,13 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Fetch summary counts
-  const [
-    totalDevices,
-    totalEmployees,
-    inStockCount,
-    assignedCount,
-    inRepairCount,
-    retiredCount,
-    recentDevices,
-  ] = await Promise.all([
-    db.device.count(),
+  // Fetch summary counts with efficient aggregation
+  const [deviceStats, totalEmployees, recentDevices] = await Promise.all([
+    db.device.groupBy({
+      by: ["status"],
+      _count: { status: true },
+    }),
     db.employee.count(),
-    db.device.count({ where: { status: DeviceStatus.IN_STOCK } }),
-    db.device.count({ where: { status: DeviceStatus.ASSIGNED } }),
-    db.device.count({ where: { status: DeviceStatus.IN_REPAIR } }),
-    db.device.count({ where: { status: DeviceStatus.RETIRED } }),
     db.device.findMany({
       take: 6,
       orderBy: { createdAt: "desc" },
@@ -53,6 +44,24 @@ export default async function DashboardPage() {
       },
     }),
   ]);
+
+  const statusCounts: Record<DeviceStatus, number> = {
+    IN_STOCK: 0,
+    ASSIGNED: 0,
+    IN_REPAIR: 0,
+    RETIRED: 0,
+  };
+
+  let totalDevices = 0;
+  for (const stat of deviceStats) {
+    statusCounts[stat.status] = stat._count.status;
+    totalDevices += stat._count.status;
+  }
+
+  const inStockCount = statusCounts.IN_STOCK;
+  const assignedCount = statusCounts.ASSIGNED;
+  const inRepairCount = statusCounts.IN_REPAIR;
+  const retiredCount = statusCounts.RETIRED;
 
   const assignedPercentage = totalDevices > 0 ? Math.round((assignedCount / totalDevices) * 100) : 0;
   const inStockPercentage = totalDevices > 0 ? Math.round((inStockCount / totalDevices) * 100) : 0;

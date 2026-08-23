@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Sparkles,
+  ScrollText,
 } from "lucide-react";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 
@@ -40,6 +41,11 @@ export function Sidebar({ user }: SidebarProps) {
       label: "Employees",
       href: "/employees",
       icon: Users,
+    },
+    {
+      label: "Audit Logs",
+      href: "/audit-logs",
+      icon: ScrollText,
     },
     ...(isIT
       ? [

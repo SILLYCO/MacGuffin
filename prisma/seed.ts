@@ -1,4 +1,4 @@
-import { PrismaClient, Role, DeviceStatus } from "@prisma/client";
+import { PrismaClient, Role, DeviceStatus, AuditAction, AuditEntityType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -170,6 +170,56 @@ async function main() {
         }
       }
     }
+  }
+
+  // 5. Seed initial audit log entries if empty
+  const existingAuditCount = await prisma.auditLog.count();
+  if (existingAuditCount === 0) {
+    await prisma.auditLog.createMany({
+      data: [
+        {
+          action: AuditAction.DEVICE_CREATED,
+          entityType: AuditEntityType.DEVICE,
+          entityName: "Apple MacBook Pro 16\" (C02G1234MD6R)",
+          actorId: itUser.id,
+          actorEmail: itUser.email,
+          actorRole: Role.IT,
+          details: JSON.stringify({ brand: "Apple", model: "MacBook Pro 16\"", ram: "32 GB", storage: "1 TB SSD" }),
+          createdAt: new Date(Date.now() - 4 * 86400000),
+        },
+        {
+          action: AuditAction.EMPLOYEE_CREATED,
+          entityType: AuditEntityType.EMPLOYEE,
+          entityName: "Sarah Connor (Engineering)",
+          actorId: itUser.id,
+          actorEmail: itUser.email,
+          actorRole: Role.IT,
+          details: JSON.stringify({ email: "sarah.connor@company.com", department: "Engineering" }),
+          createdAt: new Date(Date.now() - 3 * 86400000),
+        },
+        {
+          action: AuditAction.DEVICE_ASSIGNED,
+          entityType: AuditEntityType.ASSIGNMENT,
+          entityName: "Apple MacBook Pro 16\" (C02G1234MD6R)",
+          actorId: itUser.id,
+          actorEmail: itUser.email,
+          actorRole: Role.IT,
+          details: JSON.stringify({ assignedToEmployee: "Sarah Connor (Engineering)" }),
+          createdAt: new Date(Date.now() - 2 * 86400000),
+        },
+        {
+          action: AuditAction.DEVICE_STATUS_CHANGED,
+          entityType: AuditEntityType.DEVICE,
+          entityName: "Framework Laptop 16 (FW16-AMD7840-01)",
+          actorId: itUser.id,
+          actorEmail: itUser.email,
+          actorRole: Role.IT,
+          details: JSON.stringify({ fromStatus: "IN_STOCK", toStatus: "IN_REPAIR" }),
+          createdAt: new Date(Date.now() - 1 * 86400000),
+        },
+      ],
+    });
+    console.log(`✅ Sample Audit Logs seeded`);
   }
 
   console.log(`✅ Sample Devices & Assignments created`);

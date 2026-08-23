@@ -212,11 +212,13 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
                   Purchase Date
                 </span>
                 <span className="font-semibold text-foreground text-sm">
-                  {new Date(device.purchaseDate).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {device.purchaseDate
+                    ? new Date(device.purchaseDate).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "Not specified"}
                 </span>
               </div>
 
@@ -225,11 +227,13 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
                   Warranty Expiration
                 </span>
                 <span className="font-semibold text-foreground text-sm">
-                  {new Date(device.warrantyExpiry).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {device.warrantyExpiry
+                    ? new Date(device.warrantyExpiry).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "Not specified"}
                 </span>
               </div>
             </div>

@@ -19,15 +19,38 @@ enum DeviceStatus {
   RETIRED
 }
 
+enum AuditAction {
+  DEVICE_CREATED
+  DEVICE_UPDATED
+  DEVICE_STATUS_CHANGED
+  DEVICE_ASSIGNED
+  DEVICE_UNASSIGNED
+  DEVICE_DELETED
+  EMPLOYEE_CREATED
+  EMPLOYEE_UPDATED
+  EMPLOYEE_DELETED
+  USER_CREATED
+  USER_ROLE_UPDATED
+  USER_DELETED
+}
+
+enum AuditEntityType {
+  DEVICE
+  EMPLOYEE
+  USER
+  ASSIGNMENT
+}
+
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
+  id           String     @id @default(cuid())
+  email        String     @unique
   passwordHash String
-  role         Role      @default(MANAGER)
-  employeeId   String?   @unique
-  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  role         Role       @default(MANAGER)
+  employeeId   String?    @unique
+  employee     Employee?  @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  auditLogs    AuditLog[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model Employee {
@@ -49,8 +72,8 @@ model Device {
   ram            String
   storage        String
   serialNumber   String       @unique
-  purchaseDate   DateTime
-  warrantyExpiry DateTime
+  purchaseDate   DateTime?
+  warrantyExpiry DateTime?
   status         DeviceStatus @default(IN_STOCK)
   assignments    Assignment[]
   createdAt      DateTime     @default(now())
@@ -68,4 +91,23 @@ model Assignment {
 
   @@index([deviceId])
   @@index([employeeId])
+}
+
+model AuditLog {
+  id          String          @id @default(cuid())
+  action      AuditAction
+  entityType  AuditEntityType
+  entityId    String?
+  entityName  String?
+  actorId     String?
+  actor       User?           @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail  String
+  actorRole   Role
+  details     String?         // Formatted JSON string containing action metadata/diff
+  createdAt   DateTime        @default(now())
+
+  @@index([action])
+  @@index([entityType])
+  @@index([actorEmail])
+  @@index([createdAt])
 }
