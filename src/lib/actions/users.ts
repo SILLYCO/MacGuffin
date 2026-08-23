@@ -119,6 +119,47 @@ export async function updateUserRoleAction(userId: string, newRole: Role) {
   }
 }
 
+export async function resetUserPasswordAction(userId: string, newPassword: string) {
+  const currentUser = await requireITRole();
+
+  if (!newPassword || newPassword.trim().length < 6) {
+    return { error: "Password must be at least 6 characters long." };
+  }
+
+  try {
+    const targetUser = await db.user.findUnique({ where: { id: userId } });
+    if (!targetUser) {
+      return { error: "User account not found." };
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
+
+    await db.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    await logAuditAction({
+      action: AuditAction.USER_PASSWORD_RESET,
+      entityType: AuditEntityType.USER,
+      entityId: userId,
+      entityName: targetUser.email,
+      details: {
+        targetEmail: targetUser.email,
+        targetRole: targetUser.role,
+      },
+      actor: currentUser,
+    });
+
+    revalidatePath("/settings/users");
+    revalidatePath("/audit-logs");
+    return { success: true };
+  } catch (error: any) {
+    console.error("resetUserPasswordAction error:", error);
+    return { error: error?.message || "Failed to reset user password." };
+  }
+}
+
 export async function deleteUserAction(userId: string) {
   const currentUser = await requireITRole();
 
