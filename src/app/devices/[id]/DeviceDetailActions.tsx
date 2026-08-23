@@ -29,6 +29,13 @@ interface DeviceDetailActionsProps {
   currentStatus: DeviceStatus;
   hasActiveAssignment: boolean;
   activeEmployeeId?: string | null;
+  activeRepair?: {
+    id: string;
+    issueDescription: string;
+    vendor?: string | null;
+    reportedAt: Date | string;
+    reportedByEmail: string;
+  } | null;
   employees: EmployeeOption[];
   userRole: string;
 }
@@ -39,6 +46,7 @@ export function DeviceDetailActions({
   currentStatus,
   hasActiveAssignment,
   activeEmployeeId,
+  activeRepair,
   employees,
   userRole,
 }: DeviceDetailActionsProps) {
@@ -156,6 +164,7 @@ export function DeviceDetailActions({
           deviceId={deviceId}
           currentStatus={currentStatus}
           hasActiveAssignment={hasActiveAssignment}
+          activeRepair={activeRepair}
           onClose={() => setShowStatusModal(false)}
         />
       )}

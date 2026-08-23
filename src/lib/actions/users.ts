@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { requireITRole } from "@/lib/permissions";
-import { Role } from "@prisma/client";
+import { Role, AuditAction, AuditEntityType } from "@prisma/client";
+import { logAuditAction } from "@/lib/audit";
 
 export async function createUserAction(formData: FormData) {
-  await requireITRole();
+  const currentUser = await requireITRole();
 
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = formData.get("password") as string;
@@ -48,16 +49,33 @@ export async function createUserAction(formData: FormData) {
   try {
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await db.user.create({
+    const newUser = await db.user.create({
       data: {
         email,
         passwordHash,
         role,
         employeeId,
       },
+      include: {
+        employee: true,
+      },
+    });
+
+    await logAuditAction({
+      action: AuditAction.USER_CREATED,
+      entityType: AuditEntityType.USER,
+      entityId: newUser.id,
+      entityName: `${email} (${role})`,
+      details: {
+        email,
+        role,
+        linkedEmployee: newUser.employee ? `${newUser.employee.name} (${newUser.employee.department})` : null,
+      },
+      actor: currentUser,
     });
 
     revalidatePath("/settings/users");
+    revalidatePath("/audit-logs");
     return { success: true };
   } catch (error: any) {
     console.error("createUserAction error:", error);
@@ -66,19 +84,34 @@ export async function createUserAction(formData: FormData) {
 }
 
 export async function updateUserRoleAction(userId: string, newRole: Role) {
-  await requireITRole();
+  const currentUser = await requireITRole();
 
   if (![Role.IT, Role.MANAGER].includes(newRole)) {
     return { error: "Invalid role specified." };
   }
 
   try {
+    const prevUser = await db.user.findUnique({ where: { id: userId } });
+
     await db.user.update({
       where: { id: userId },
       data: { role: newRole },
     });
 
+    await logAuditAction({
+      action: AuditAction.USER_ROLE_UPDATED,
+      entityType: AuditEntityType.USER,
+      entityId: userId,
+      entityName: prevUser?.email || "User",
+      details: {
+        fromRole: prevUser?.role,
+        toRole: newRole,
+      },
+      actor: currentUser,
+    });
+
     revalidatePath("/settings/users");
+    revalidatePath("/audit-logs");
     return { success: true };
   } catch (error: any) {
     console.error("updateUserRoleAction error:", error);
@@ -94,11 +127,26 @@ export async function deleteUserAction(userId: string) {
   }
 
   try {
+    const userToDelete = await db.user.findUnique({ where: { id: userId } });
+
     await db.user.delete({
       where: { id: userId },
     });
 
+    await logAuditAction({
+      action: AuditAction.USER_DELETED,
+      entityType: AuditEntityType.USER,
+      entityId: userId,
+      entityName: userToDelete?.email || "User",
+      details: {
+        email: userToDelete?.email,
+        role: userToDelete?.role,
+      },
+      actor: currentUser,
+    });
+
     revalidatePath("/settings/users");
+    revalidatePath("/audit-logs");
     return { success: true };
   } catch (error: any) {
     console.error("deleteUserAction error:", error);

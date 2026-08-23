@@ -15,6 +15,9 @@ import {
   User,
   History,
   ShieldAlert,
+  Wrench,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 
 interface DeviceDetailPageProps {
@@ -38,6 +41,9 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
           employee: true,
         },
       },
+      repairs: {
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
@@ -47,6 +53,9 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
 
   // Active assignment
   const activeAssignment = device.assignments.find((a) => a.unassignedAt === null);
+
+  // Active repair (if currently in repair)
+  const activeRepair = device.repairs.find((r) => r.resolvedAt === null);
 
   // All employees for IT reassign modal
   const allEmployees = session.user.role === "IT"
@@ -105,10 +114,72 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
             currentStatus={device.status}
             hasActiveAssignment={!!activeAssignment}
             activeEmployeeId={activeAssignment?.employeeId || null}
+            activeRepair={activeRepair ? {
+              id: activeRepair.id,
+              issueDescription: activeRepair.issueDescription,
+              vendor: activeRepair.vendor,
+              reportedAt: activeRepair.reportedAt,
+              reportedByEmail: activeRepair.reportedByEmail,
+            } : null}
             employees={formattedEmployees}
             userRole={session.user.role}
           />
         </div>
+
+        {/* Active Repair Banner (When IN_REPAIR) */}
+        {device.status === "IN_REPAIR" && (
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30 space-y-2 relative overflow-hidden">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2.5 text-amber-400 font-bold text-sm">
+                <Wrench className="w-5 h-5 shrink-0" />
+                <span>Device Currently Under IT Maintenance & Repair</span>
+              </div>
+              {activeAssignment && (
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  Assigned to: {activeAssignment.employee.name}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-xs">
+              <div className="p-3 rounded-xl bg-background/60 border border-amber-500/20">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  Reported Issue
+                </span>
+                <p className="font-semibold text-foreground mt-0.5">
+                  {activeRepair?.issueDescription || "Hardware inspection/repair"}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-background/60 border border-amber-500/20">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  Service Vendor / Location
+                </span>
+                <p className="font-semibold text-foreground mt-0.5">
+                  {activeRepair?.vendor || "Internal IT Department"}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-background/60 border border-amber-500/20">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  Sent to Repair On
+                </span>
+                <p className="font-semibold text-foreground mt-0.5">
+                  {activeRepair?.reportedAt
+                    ? new Date(activeRepair.reportedAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "Recently"}{" "}
+                  <span className="text-muted-foreground text-[11px]">
+                    ({activeRepair?.reportedByEmail})
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Specs & Current Assignment Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -212,11 +283,13 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
                   Purchase Date
                 </span>
                 <span className="font-semibold text-foreground text-sm">
-                  {new Date(device.purchaseDate).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {device.purchaseDate
+                    ? new Date(device.purchaseDate).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "Not specified"}
                 </span>
               </div>
 
@@ -225,14 +298,113 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
                   Warranty Expiration
                 </span>
                 <span className="font-semibold text-foreground text-sm">
-                  {new Date(device.warrantyExpiry).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {device.warrantyExpiry
+                    ? new Date(device.warrantyExpiry).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "Not specified"}
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Maintenance & Repair History Section */}
+        <div className="glass-card p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-amber-400" />
+              Hardware Maintenance & Repair History
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              {device.repairs.length} {device.repairs.length === 1 ? "repair record" : "repair records"}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-muted/40 border-b border-border/60 uppercase font-semibold text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Reported Date</th>
+                  <th className="px-4 py-3">Reported Issue</th>
+                  <th className="px-4 py-3">Vendor / Provider</th>
+                  <th className="px-4 py-3">Resolution & Notes</th>
+                  <th className="px-4 py-3">Resolved Date</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {device.repairs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground italic">
+                      No maintenance or repair records for this laptop.
+                    </td>
+                  </tr>
+                ) : (
+                  device.repairs.map((repair) => {
+                    const isOpen = repair.resolvedAt === null;
+                    return (
+                      <tr key={repair.id} className="hover:bg-muted/30">
+                        <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
+                          {new Date(repair.reportedAt).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                          <span className="block text-[10px] text-muted-foreground">
+                            by {repair.reportedByEmail}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-foreground max-w-xs">
+                          {repair.issueDescription}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {repair.vendor || "Internal IT"}
+                        </td>
+                        <td className="px-4 py-3 text-foreground max-w-xs">
+                          {repair.resolutionNotes ? (
+                            <span>{repair.resolutionNotes}</span>
+                          ) : (
+                            <span className="text-muted-foreground italic">
+                              {isOpen ? "Undergoing repair..." : "No resolution notes"}
+                            </span>
+                          )}
+                          {repair.resolvedByEmail && (
+                            <span className="block text-[10px] text-muted-foreground">
+                              Fixed by {repair.resolvedByEmail}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {repair.resolvedAt
+                            ? new Date(repair.resolvedAt).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {isOpen ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 font-bold text-[10px] rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                              <Clock className="w-3 h-3" />
+                              In Progress
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 font-semibold text-[10px] rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Repaired
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 

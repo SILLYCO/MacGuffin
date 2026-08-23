@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireITRole } from "@/lib/permissions";
-import { DeviceStatus } from "@prisma/client";
+import { DeviceStatus, AuditAction, AuditEntityType } from "@prisma/client";
+import { logAuditAction } from "@/lib/audit";
 
 export async function createDeviceAction(formData: FormData) {
-  await requireITRole();
+  const user = await requireITRole();
 
   const brand = formData.get("brand") as string;
   const model = formData.get("model") as string;
@@ -17,8 +18,8 @@ export async function createDeviceAction(formData: FormData) {
   const purchaseDateStr = formData.get("purchaseDate") as string;
   const warrantyExpiryStr = formData.get("warrantyExpiry") as string;
 
-  if (!brand || !model || !cpu || !ram || !storage || !serialNumber || !purchaseDateStr || !warrantyExpiryStr) {
-    return { error: "All device specification fields are required." };
+  if (!brand || !model || !cpu || !ram || !storage || !serialNumber) {
+    return { error: "Brand, model, CPU, RAM, storage, and serial number are required." };
   }
 
   // Check unique serial number
@@ -31,6 +32,9 @@ export async function createDeviceAction(formData: FormData) {
   }
 
   try {
+    const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
+    const warrantyExpiry = warrantyExpiryStr ? new Date(warrantyExpiryStr) : null;
+
     const device = await db.device.create({
       data: {
         brand,
@@ -39,14 +43,34 @@ export async function createDeviceAction(formData: FormData) {
         ram,
         storage,
         serialNumber,
-        purchaseDate: new Date(purchaseDateStr),
-        warrantyExpiry: new Date(warrantyExpiryStr),
+        purchaseDate,
+        warrantyExpiry,
         status: DeviceStatus.IN_STOCK,
       },
     });
 
+    await logAuditAction({
+      action: AuditAction.DEVICE_CREATED,
+      entityType: AuditEntityType.DEVICE,
+      entityId: device.id,
+      entityName: `${brand} ${model} (${serialNumber})`,
+      details: {
+        brand,
+        model,
+        cpu,
+        ram,
+        storage,
+        serialNumber,
+        purchaseDate: purchaseDate?.toISOString() || null,
+        warrantyExpiry: warrantyExpiry?.toISOString() || null,
+        status: DeviceStatus.IN_STOCK,
+      },
+      actor: user,
+    });
+
     revalidatePath("/devices");
     revalidatePath("/dashboard");
+    revalidatePath("/audit-logs");
     return { success: true, deviceId: device.id };
   } catch (error: any) {
     console.error("createDeviceAction error:", error);
@@ -55,7 +79,7 @@ export async function createDeviceAction(formData: FormData) {
 }
 
 export async function updateDeviceAction(deviceId: string, formData: FormData) {
-  await requireITRole();
+  const user = await requireITRole();
 
   const brand = formData.get("brand") as string;
   const model = formData.get("model") as string;
@@ -66,8 +90,8 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   const purchaseDateStr = formData.get("purchaseDate") as string;
   const warrantyExpiryStr = formData.get("warrantyExpiry") as string;
 
-  if (!brand || !model || !cpu || !ram || !storage || !serialNumber || !purchaseDateStr || !warrantyExpiryStr) {
-    return { error: "All device specification fields are required." };
+  if (!brand || !model || !cpu || !ram || !storage || !serialNumber) {
+    return { error: "Brand, model, CPU, RAM, storage, and serial number are required." };
   }
 
   const existingSerial = await db.device.findFirst({
@@ -82,7 +106,10 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   }
 
   try {
-    await db.device.update({
+    const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
+    const warrantyExpiry = warrantyExpiryStr ? new Date(warrantyExpiryStr) : null;
+
+    const updated = await db.device.update({
       where: { id: deviceId },
       data: {
         brand,
@@ -91,13 +118,32 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
         ram,
         storage,
         serialNumber,
-        purchaseDate: new Date(purchaseDateStr),
-        warrantyExpiry: new Date(warrantyExpiryStr),
+        purchaseDate,
+        warrantyExpiry,
       },
+    });
+
+    await logAuditAction({
+      action: AuditAction.DEVICE_UPDATED,
+      entityType: AuditEntityType.DEVICE,
+      entityId: deviceId,
+      entityName: `${brand} ${model} (${serialNumber})`,
+      details: {
+        brand,
+        model,
+        cpu,
+        ram,
+        storage,
+        serialNumber,
+        purchaseDate: purchaseDate?.toISOString() || null,
+        warrantyExpiry: warrantyExpiry?.toISOString() || null,
+      },
+      actor: user,
     });
 
     revalidatePath("/devices");
     revalidatePath(`/devices/${deviceId}`);
+    revalidatePath("/audit-logs");
     return { success: true };
   } catch (error: any) {
     console.error("updateDeviceAction error:", error);
@@ -105,29 +151,125 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   }
 }
 
-export async function updateDeviceStatusAction(deviceId: string, newStatus: DeviceStatus) {
-  await requireITRole();
+export interface UpdateStatusOptions {
+  issueDescription?: string;
+  resolutionNotes?: string;
+  vendor?: string;
+}
+
+export async function updateDeviceStatusAction(
+  deviceId: string,
+  newStatus: DeviceStatus,
+  repairData?: UpdateStatusOptions
+) {
+  const user = await requireITRole();
 
   // Check if device currently has an active assignment
   const activeAssignment = await db.assignment.findFirst({
     where: { deviceId, unassignedAt: null },
   });
 
-  if (activeAssignment && newStatus !== DeviceStatus.ASSIGNED) {
+  // If device is actively assigned, allow changing to IN_REPAIR or back to ASSIGNED
+  // Block IN_STOCK or RETIRED while assigned (must be unassigned first)
+  if (
+    activeAssignment &&
+    newStatus !== DeviceStatus.IN_REPAIR &&
+    newStatus !== DeviceStatus.ASSIGNED
+  ) {
     return {
-      error: "Cannot manually change status while device is assigned to an employee. Unassign the device first.",
+      error:
+        "Cannot mark device as In Stock or Retired while assigned to an employee. Please unassign the device first.",
     };
   }
 
+  // Validate issue description if moving to IN_REPAIR
+  if (newStatus === DeviceStatus.IN_REPAIR && !repairData?.issueDescription?.trim()) {
+    const existingOpenRepair = await db.repairRecord.findFirst({
+      where: { deviceId, resolvedAt: null },
+    });
+    if (!existingOpenRepair) {
+      return { error: "Please describe what needs to be repaired on this device." };
+    }
+  }
+
   try {
-    await db.device.update({
+    const prevDevice = await db.device.findUnique({
       where: { id: deviceId },
-      data: { status: newStatus },
+      select: { brand: true, model: true, serialNumber: true, status: true },
+    });
+
+    if (!prevDevice) {
+      return { error: "Device not found." };
+    }
+
+    let activeRepairInfo: { issueDescription?: string; vendor?: string | null } | null = null;
+
+    await db.$transaction(async (tx) => {
+      // 1. Update device status
+      await tx.device.update({
+        where: { id: deviceId },
+        data: { status: newStatus },
+      });
+
+      // 2. If entering IN_REPAIR, create RepairRecord
+      if (newStatus === DeviceStatus.IN_REPAIR && prevDevice.status !== DeviceStatus.IN_REPAIR) {
+        await tx.repairRecord.create({
+          data: {
+            deviceId,
+            issueDescription: repairData?.issueDescription?.trim() || "Hardware repair/maintenance",
+            vendor: repairData?.vendor?.trim() || null,
+            reportedAt: new Date(),
+            reportedByEmail: user.email,
+          },
+        });
+      }
+
+      // 3. If exiting IN_REPAIR, resolve open RepairRecord
+      if (prevDevice.status === DeviceStatus.IN_REPAIR && newStatus !== DeviceStatus.IN_REPAIR) {
+        const openRepair = await tx.repairRecord.findFirst({
+          where: { deviceId, resolvedAt: null },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (openRepair) {
+          activeRepairInfo = {
+            issueDescription: openRepair.issueDescription,
+            vendor: openRepair.vendor,
+          };
+          await tx.repairRecord.update({
+            where: { id: openRepair.id },
+            data: {
+              resolvedAt: new Date(),
+              resolvedByEmail: user.email,
+              resolutionNotes: repairData?.resolutionNotes?.trim() || null,
+            },
+          });
+        }
+      }
+
+      // 4. Record Audit Log
+      await logAuditAction({
+        tx,
+        action: AuditAction.DEVICE_STATUS_CHANGED,
+        entityType: AuditEntityType.DEVICE,
+        entityId: deviceId,
+        entityName: `${prevDevice.brand} ${prevDevice.model} (${prevDevice.serialNumber})`,
+        details: {
+          fromStatus: prevDevice.status,
+          toStatus: newStatus,
+          issueDescription:
+            repairData?.issueDescription?.trim() || activeRepairInfo?.issueDescription || null,
+          resolutionNotes: repairData?.resolutionNotes?.trim() || null,
+          vendor: repairData?.vendor?.trim() || activeRepairInfo?.vendor || null,
+        },
+        actor: user,
+      });
     });
 
     revalidatePath("/devices");
     revalidatePath(`/devices/${deviceId}`);
     revalidatePath("/dashboard");
+    revalidatePath("/audit-logs");
     return { success: true };
   } catch (error: any) {
     console.error("updateDeviceStatusAction error:", error);
@@ -136,12 +278,21 @@ export async function updateDeviceStatusAction(deviceId: string, newStatus: Devi
 }
 
 export async function assignDeviceAction(deviceId: string, employeeId: string) {
-  await requireITRole();
+  const user = await requireITRole();
 
   const now = new Date();
 
   try {
+    let deviceName = "Device";
+    let employeeName = "Employee";
+
     await db.$transaction(async (tx) => {
+      const targetDevice = await tx.device.findUnique({ where: { id: deviceId } });
+      const targetEmployee = await tx.employee.findUnique({ where: { id: employeeId } });
+
+      if (targetDevice) deviceName = `${targetDevice.brand} ${targetDevice.model} (${targetDevice.serialNumber})`;
+      if (targetEmployee) employeeName = `${targetEmployee.name} (${targetEmployee.department})`;
+
       // 1. Close out device's current active assignment if any
       const currentDeviceAssignment = await tx.assignment.findFirst({
         where: { deviceId, unassignedAt: null },
@@ -185,6 +336,21 @@ export async function assignDeviceAction(deviceId: string, employeeId: string) {
         where: { id: deviceId },
         data: { status: DeviceStatus.ASSIGNED },
       });
+
+      // 5. Log audit action in transaction
+      await logAuditAction({
+        tx,
+        action: AuditAction.DEVICE_ASSIGNED,
+        entityType: AuditEntityType.ASSIGNMENT,
+        entityId: deviceId,
+        entityName: deviceName,
+        details: {
+          assignedToEmployee: employeeName,
+          employeeId,
+          deviceId,
+        },
+        actor: user,
+      });
     });
 
     revalidatePath("/devices");
@@ -192,6 +358,7 @@ export async function assignDeviceAction(deviceId: string, employeeId: string) {
     revalidatePath("/employees");
     revalidatePath(`/employees/${employeeId}`);
     revalidatePath("/dashboard");
+    revalidatePath("/audit-logs");
     return { success: true };
   } catch (error: any) {
     console.error("assignDeviceAction error:", error);
@@ -200,13 +367,14 @@ export async function assignDeviceAction(deviceId: string, employeeId: string) {
 }
 
 export async function unassignDeviceAction(deviceId: string) {
-  await requireITRole();
+  const user = await requireITRole();
 
   const now = new Date();
 
   try {
     const activeAssignment = await db.assignment.findFirst({
       where: { deviceId, unassignedAt: null },
+      include: { device: true, employee: true },
     });
 
     if (!activeAssignment) {
@@ -225,6 +393,21 @@ export async function unassignDeviceAction(deviceId: string) {
         where: { id: deviceId },
         data: { status: DeviceStatus.IN_STOCK },
       });
+
+      // 3. Log audit action
+      await logAuditAction({
+        tx,
+        action: AuditAction.DEVICE_UNASSIGNED,
+        entityType: AuditEntityType.ASSIGNMENT,
+        entityId: deviceId,
+        entityName: `${activeAssignment.device.brand} ${activeAssignment.device.model} (${activeAssignment.device.serialNumber})`,
+        details: {
+          unassignedFromEmployee: `${activeAssignment.employee.name} (${activeAssignment.employee.department})`,
+          employeeId: activeAssignment.employeeId,
+          deviceId,
+        },
+        actor: user,
+      });
     });
 
     revalidatePath("/devices");
@@ -232,6 +415,7 @@ export async function unassignDeviceAction(deviceId: string) {
     revalidatePath("/employees");
     revalidatePath(`/employees/${activeAssignment.employeeId}`);
     revalidatePath("/dashboard");
+    revalidatePath("/audit-logs");
     return { success: true };
   } catch (error: any) {
     console.error("unassignDeviceAction error:", error);
@@ -240,15 +424,34 @@ export async function unassignDeviceAction(deviceId: string) {
 }
 
 export async function deleteDeviceAction(deviceId: string) {
-  await requireITRole();
+  const user = await requireITRole();
 
   try {
+    const device = await db.device.findUnique({
+      where: { id: deviceId },
+      select: { brand: true, model: true, serialNumber: true },
+    });
+
     await db.device.delete({
       where: { id: deviceId },
     });
 
+    await logAuditAction({
+      action: AuditAction.DEVICE_DELETED,
+      entityType: AuditEntityType.DEVICE,
+      entityId: deviceId,
+      entityName: device ? `${device.brand} ${device.model} (${device.serialNumber})` : "Device",
+      details: {
+        brand: device?.brand,
+        model: device?.model,
+        serialNumber: device?.serialNumber,
+      },
+      actor: user,
+    });
+
     revalidatePath("/devices");
     revalidatePath("/dashboard");
+    revalidatePath("/audit-logs");
     return { success: true };
   } catch (error: any) {
     console.error("deleteDeviceAction error:", error);
