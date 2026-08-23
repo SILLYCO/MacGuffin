@@ -151,7 +151,17 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   }
 }
 
-export async function updateDeviceStatusAction(deviceId: string, newStatus: DeviceStatus) {
+export interface UpdateStatusOptions {
+  issueDescription?: string;
+  resolutionNotes?: string;
+  vendor?: string;
+}
+
+export async function updateDeviceStatusAction(
+  deviceId: string,
+  newStatus: DeviceStatus,
+  repairData?: UpdateStatusOptions
+) {
   const user = await requireITRole();
 
   // Check if device currently has an active assignment
@@ -159,10 +169,27 @@ export async function updateDeviceStatusAction(deviceId: string, newStatus: Devi
     where: { deviceId, unassignedAt: null },
   });
 
-  if (activeAssignment && newStatus !== DeviceStatus.ASSIGNED) {
+  // If device is actively assigned, allow changing to IN_REPAIR or back to ASSIGNED
+  // Block IN_STOCK or RETIRED while assigned (must be unassigned first)
+  if (
+    activeAssignment &&
+    newStatus !== DeviceStatus.IN_REPAIR &&
+    newStatus !== DeviceStatus.ASSIGNED
+  ) {
     return {
-      error: "Cannot manually change status while device is assigned to an employee. Unassign the device first.",
+      error:
+        "Cannot mark device as In Stock or Retired while assigned to an employee. Please unassign the device first.",
     };
+  }
+
+  // Validate issue description if moving to IN_REPAIR
+  if (newStatus === DeviceStatus.IN_REPAIR && !repairData?.issueDescription?.trim()) {
+    const existingOpenRepair = await db.repairRecord.findFirst({
+      where: { deviceId, resolvedAt: null },
+    });
+    if (!existingOpenRepair) {
+      return { error: "Please describe what needs to be repaired on this device." };
+    }
   }
 
   try {
@@ -171,21 +198,72 @@ export async function updateDeviceStatusAction(deviceId: string, newStatus: Devi
       select: { brand: true, model: true, serialNumber: true, status: true },
     });
 
-    await db.device.update({
-      where: { id: deviceId },
-      data: { status: newStatus },
-    });
+    if (!prevDevice) {
+      return { error: "Device not found." };
+    }
 
-    await logAuditAction({
-      action: AuditAction.DEVICE_STATUS_CHANGED,
-      entityType: AuditEntityType.DEVICE,
-      entityId: deviceId,
-      entityName: prevDevice ? `${prevDevice.brand} ${prevDevice.model} (${prevDevice.serialNumber})` : "Device",
-      details: {
-        fromStatus: prevDevice?.status,
-        toStatus: newStatus,
-      },
-      actor: user,
+    let activeRepairInfo: { issueDescription?: string; vendor?: string | null } | null = null;
+
+    await db.$transaction(async (tx) => {
+      // 1. Update device status
+      await tx.device.update({
+        where: { id: deviceId },
+        data: { status: newStatus },
+      });
+
+      // 2. If entering IN_REPAIR, create RepairRecord
+      if (newStatus === DeviceStatus.IN_REPAIR && prevDevice.status !== DeviceStatus.IN_REPAIR) {
+        await tx.repairRecord.create({
+          data: {
+            deviceId,
+            issueDescription: repairData?.issueDescription?.trim() || "Hardware repair/maintenance",
+            vendor: repairData?.vendor?.trim() || null,
+            reportedAt: new Date(),
+            reportedByEmail: user.email,
+          },
+        });
+      }
+
+      // 3. If exiting IN_REPAIR, resolve open RepairRecord
+      if (prevDevice.status === DeviceStatus.IN_REPAIR && newStatus !== DeviceStatus.IN_REPAIR) {
+        const openRepair = await tx.repairRecord.findFirst({
+          where: { deviceId, resolvedAt: null },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (openRepair) {
+          activeRepairInfo = {
+            issueDescription: openRepair.issueDescription,
+            vendor: openRepair.vendor,
+          };
+          await tx.repairRecord.update({
+            where: { id: openRepair.id },
+            data: {
+              resolvedAt: new Date(),
+              resolvedByEmail: user.email,
+              resolutionNotes: repairData?.resolutionNotes?.trim() || null,
+            },
+          });
+        }
+      }
+
+      // 4. Record Audit Log
+      await logAuditAction({
+        tx,
+        action: AuditAction.DEVICE_STATUS_CHANGED,
+        entityType: AuditEntityType.DEVICE,
+        entityId: deviceId,
+        entityName: `${prevDevice.brand} ${prevDevice.model} (${prevDevice.serialNumber})`,
+        details: {
+          fromStatus: prevDevice.status,
+          toStatus: newStatus,
+          issueDescription:
+            repairData?.issueDescription?.trim() || activeRepairInfo?.issueDescription || null,
+          resolutionNotes: repairData?.resolutionNotes?.trim() || null,
+          vendor: repairData?.vendor?.trim() || activeRepairInfo?.vendor || null,
+        },
+        actor: user,
+      });
     });
 
     revalidatePath("/devices");

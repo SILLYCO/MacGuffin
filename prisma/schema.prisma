@@ -74,10 +74,11 @@ model Device {
   serialNumber   String       @unique
   purchaseDate   DateTime?
   warrantyExpiry DateTime?
-  status         DeviceStatus @default(IN_STOCK)
+  status         DeviceStatus   @default(IN_STOCK)
   assignments    Assignment[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  repairs        RepairRecord[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model Assignment {
@@ -91,6 +92,24 @@ model Assignment {
 
   @@index([deviceId])
   @@index([employeeId])
+}
+
+model RepairRecord {
+  id               String    @id @default(cuid())
+  deviceId         String
+  device           Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  issueDescription String
+  resolutionNotes  String?
+  vendor           String?
+  reportedAt       DateTime  @default(now())
+  resolvedAt       DateTime?
+  reportedByEmail  String
+  resolvedByEmail  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([deviceId])
+  @@index([resolvedAt])
 }
 
 model AuditLog {
