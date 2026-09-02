@@ -110,44 +110,41 @@ export async function deleteEmployeeAction(employeeId: string) {
   try {
     let empName = "Employee";
 
-    await db.$transaction(async (tx) => {
-      const emp = await tx.employee.findUnique({ where: { id: employeeId } });
-      if (emp) empName = `${emp.name} (${emp.department})`;
+    const emp = await db.employee.findUnique({ where: { id: employeeId } });
+    if (emp) empName = `${emp.name} (${emp.department})`;
 
-      // Find active device assignment for this employee if any
-      const activeAssignment = await tx.assignment.findFirst({
-        where: { employeeId, unassignedAt: null },
+    // Find active device assignment for this employee if any
+    const activeAssignment = await db.assignment.findFirst({
+      where: { employeeId, unassignedAt: null },
+    });
+
+    if (activeAssignment) {
+      // Set unassignedAt and reset device status to IN_STOCK
+      await db.assignment.update({
+        where: { id: activeAssignment.id },
+        data: { unassignedAt: new Date() },
       });
 
-      if (activeAssignment) {
-        // Set unassignedAt and reset device status to IN_STOCK
-        await tx.assignment.update({
-          where: { id: activeAssignment.id },
-          data: { unassignedAt: new Date() },
-        });
-
-        await tx.device.update({
-          where: { id: activeAssignment.deviceId },
-          data: { status: DeviceStatus.IN_STOCK },
-        });
-      }
-
-      await tx.employee.delete({
-        where: { id: employeeId },
+      await db.device.update({
+        where: { id: activeAssignment.deviceId },
+        data: { status: DeviceStatus.IN_STOCK },
       });
+    }
 
-      await logAuditAction({
-        tx,
-        action: AuditAction.EMPLOYEE_DELETED,
-        entityType: AuditEntityType.EMPLOYEE,
-        entityId: employeeId,
-        entityName: empName,
-        details: {
-          employeeId,
-          hadActiveAssignment: !!activeAssignment,
-        },
-        actor: user,
-      });
+    await db.employee.delete({
+      where: { id: employeeId },
+    });
+
+    await logAuditAction({
+      action: AuditAction.EMPLOYEE_DELETED,
+      entityType: AuditEntityType.EMPLOYEE,
+      entityId: employeeId,
+      entityName: empName,
+      details: {
+        employeeId,
+        hadActiveAssignment: !!activeAssignment,
+      },
+      actor: user,
     });
 
     revalidatePath("/employees");
