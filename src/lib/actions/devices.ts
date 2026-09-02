@@ -204,66 +204,63 @@ export async function updateDeviceStatusAction(
 
     let activeRepairInfo: { issueDescription?: string; vendor?: string | null } | null = null;
 
-    await db.$transaction(async (tx) => {
-      // 1. Update device status
-      await tx.device.update({
-        where: { id: deviceId },
-        data: { status: newStatus },
+    // 1. Update device status
+    await db.device.update({
+      where: { id: deviceId },
+      data: { status: newStatus },
+    });
+
+    // 2. If entering IN_REPAIR, create RepairRecord
+    if (newStatus === DeviceStatus.IN_REPAIR && prevDevice.status !== DeviceStatus.IN_REPAIR) {
+      await db.repairRecord.create({
+        data: {
+          deviceId,
+          issueDescription: repairData?.issueDescription?.trim() || "Hardware repair/maintenance",
+          vendor: repairData?.vendor?.trim() || null,
+          reportedAt: new Date(),
+          reportedByEmail: user.email,
+        },
+      });
+    }
+
+    // 3. If exiting IN_REPAIR, resolve open RepairRecord
+    if (prevDevice.status === DeviceStatus.IN_REPAIR && newStatus !== DeviceStatus.IN_REPAIR) {
+      const openRepair = await db.repairRecord.findFirst({
+        where: { deviceId, resolvedAt: null },
+        orderBy: { createdAt: "desc" },
       });
 
-      // 2. If entering IN_REPAIR, create RepairRecord
-      if (newStatus === DeviceStatus.IN_REPAIR && prevDevice.status !== DeviceStatus.IN_REPAIR) {
-        await tx.repairRecord.create({
+      if (openRepair) {
+        activeRepairInfo = {
+          issueDescription: openRepair.issueDescription,
+          vendor: openRepair.vendor,
+        };
+        await db.repairRecord.update({
+          where: { id: openRepair.id },
           data: {
-            deviceId,
-            issueDescription: repairData?.issueDescription?.trim() || "Hardware repair/maintenance",
-            vendor: repairData?.vendor?.trim() || null,
-            reportedAt: new Date(),
-            reportedByEmail: user.email,
+            resolvedAt: new Date(),
+            resolvedByEmail: user.email,
+            resolutionNotes: repairData?.resolutionNotes?.trim() || null,
           },
         });
       }
+    }
 
-      // 3. If exiting IN_REPAIR, resolve open RepairRecord
-      if (prevDevice.status === DeviceStatus.IN_REPAIR && newStatus !== DeviceStatus.IN_REPAIR) {
-        const openRepair = await tx.repairRecord.findFirst({
-          where: { deviceId, resolvedAt: null },
-          orderBy: { createdAt: "desc" },
-        });
-
-        if (openRepair) {
-          activeRepairInfo = {
-            issueDescription: openRepair.issueDescription,
-            vendor: openRepair.vendor,
-          };
-          await tx.repairRecord.update({
-            where: { id: openRepair.id },
-            data: {
-              resolvedAt: new Date(),
-              resolvedByEmail: user.email,
-              resolutionNotes: repairData?.resolutionNotes?.trim() || null,
-            },
-          });
-        }
-      }
-
-      // 4. Record Audit Log
-      await logAuditAction({
-        tx,
-        action: AuditAction.DEVICE_STATUS_CHANGED,
-        entityType: AuditEntityType.DEVICE,
-        entityId: deviceId,
-        entityName: `${prevDevice.brand} ${prevDevice.model} (${prevDevice.serialNumber})`,
-        details: {
-          fromStatus: prevDevice.status,
-          toStatus: newStatus,
-          issueDescription:
-            repairData?.issueDescription?.trim() || activeRepairInfo?.issueDescription || null,
-          resolutionNotes: repairData?.resolutionNotes?.trim() || null,
-          vendor: repairData?.vendor?.trim() || activeRepairInfo?.vendor || null,
-        },
-        actor: user,
-      });
+    // 4. Record Audit Log
+    await logAuditAction({
+      action: AuditAction.DEVICE_STATUS_CHANGED,
+      entityType: AuditEntityType.DEVICE,
+      entityId: deviceId,
+      entityName: `${prevDevice.brand} ${prevDevice.model} (${prevDevice.serialNumber})`,
+      details: {
+        fromStatus: prevDevice.status,
+        toStatus: newStatus,
+        issueDescription:
+          repairData?.issueDescription?.trim() || activeRepairInfo?.issueDescription || null,
+        resolutionNotes: repairData?.resolutionNotes?.trim() || null,
+        vendor: repairData?.vendor?.trim() || activeRepairInfo?.vendor || null,
+      },
+      actor: user,
     });
 
     revalidatePath("/devices");
@@ -279,78 +276,68 @@ export async function updateDeviceStatusAction(
 
 export async function assignDeviceAction(deviceId: string, employeeId: string) {
   const user = await requireITRole();
-
   const now = new Date();
 
   try {
-    let deviceName = "Device";
-    let employeeName = "Employee";
+    const targetDevice = await db.device.findUnique({ where: { id: deviceId } });
+    const targetEmployee = await db.employee.findUnique({ where: { id: employeeId } });
 
-    await db.$transaction(async (tx) => {
-      const targetDevice = await tx.device.findUnique({ where: { id: deviceId } });
-      const targetEmployee = await tx.employee.findUnique({ where: { id: employeeId } });
+    if (!targetDevice) return { error: "Device not found." };
+    if (!targetEmployee) return { error: "Employee not found." };
 
-      if (targetDevice) deviceName = `${targetDevice.brand} ${targetDevice.model} (${targetDevice.serialNumber})`;
-      if (targetEmployee) employeeName = `${targetEmployee.name} (${targetEmployee.department})`;
+    const deviceName = `${targetDevice.brand} ${targetDevice.model} (${targetDevice.serialNumber})`;
+    const employeeName = `${targetEmployee.name} (${targetEmployee.department})`;
 
-      // 1. Close out device's current active assignment if any
-      const currentDeviceAssignment = await tx.assignment.findFirst({
-        where: { deviceId, unassignedAt: null },
+    // 1. Close out device's current active assignment if any
+    await db.assignment.updateMany({
+      where: { deviceId, unassignedAt: null },
+      data: { unassignedAt: now },
+    });
+
+    // 2. Close out employee's current active assignment if any
+    const currentEmployeeAssignment = await db.assignment.findFirst({
+      where: { employeeId, unassignedAt: null },
+    });
+    if (currentEmployeeAssignment) {
+      await db.assignment.update({
+        where: { id: currentEmployeeAssignment.id },
+        data: { unassignedAt: now },
       });
-      if (currentDeviceAssignment) {
-        await tx.assignment.update({
-          where: { id: currentDeviceAssignment.id },
-          data: { unassignedAt: now },
+      if (currentEmployeeAssignment.deviceId !== deviceId) {
+        await db.device.update({
+          where: { id: currentEmployeeAssignment.deviceId },
+          data: { status: DeviceStatus.IN_STOCK },
         });
       }
+    }
 
-      // 2. Close out employee's current active assignment if any (enforce at most 1 active assignment per employee)
-      const currentEmployeeAssignment = await tx.assignment.findFirst({
-        where: { employeeId, unassignedAt: null },
-      });
-      if (currentEmployeeAssignment) {
-        await tx.assignment.update({
-          where: { id: currentEmployeeAssignment.id },
-          data: { unassignedAt: now },
-        });
-        // If the employee was assigned to a DIFFERENT device, mark that old device as IN_STOCK
-        if (currentEmployeeAssignment.deviceId !== deviceId) {
-          await tx.device.update({
-            where: { id: currentEmployeeAssignment.deviceId },
-            data: { status: DeviceStatus.IN_STOCK },
-          });
-        }
-      }
+    // 3. Create new assignment row
+    await db.assignment.create({
+      data: {
+        deviceId,
+        employeeId,
+        assignedAt: now,
+      },
+    });
 
-      // 3. Create new assignment row
-      await tx.assignment.create({
-        data: {
-          deviceId,
-          employeeId,
-          assignedAt: now,
-        },
-      });
+    // 4. Automatically update device status to ASSIGNED
+    await db.device.update({
+      where: { id: deviceId },
+      data: { status: DeviceStatus.ASSIGNED },
+    });
 
-      // 4. Automatically update device status to ASSIGNED
-      await tx.device.update({
-        where: { id: deviceId },
-        data: { status: DeviceStatus.ASSIGNED },
-      });
-
-      // 5. Log audit action in transaction
-      await logAuditAction({
-        tx,
-        action: AuditAction.DEVICE_ASSIGNED,
-        entityType: AuditEntityType.ASSIGNMENT,
-        entityId: deviceId,
-        entityName: deviceName,
-        details: {
-          assignedToEmployee: employeeName,
-          employeeId,
-          deviceId,
-        },
-        actor: user,
-      });
+    // 5. Log audit action
+    await logAuditAction({
+      action: AuditAction.DEVICE_ASSIGNED,
+      entityType: AuditEntityType.ASSIGNMENT,
+      entityId: deviceId,
+      entityName: deviceName,
+      details: {
+        assignedToEmployee: employeeName,
+        employeeId,
+        deviceId,
+      },
+      actor: user,
     });
 
     revalidatePath("/devices");
@@ -368,7 +355,6 @@ export async function assignDeviceAction(deviceId: string, employeeId: string) {
 
 export async function unassignDeviceAction(deviceId: string) {
   const user = await requireITRole();
-
   const now = new Date();
 
   try {
@@ -381,33 +367,30 @@ export async function unassignDeviceAction(deviceId: string) {
       return { error: "Device is not currently assigned to anyone." };
     }
 
-    await db.$transaction(async (tx) => {
-      // 1. Close assignment row
-      await tx.assignment.update({
-        where: { id: activeAssignment.id },
-        data: { unassignedAt: now },
-      });
+    // 1. Close assignment row
+    await db.assignment.update({
+      where: { id: activeAssignment.id },
+      data: { unassignedAt: now },
+    });
 
-      // 2. Update device status to IN_STOCK
-      await tx.device.update({
-        where: { id: deviceId },
-        data: { status: DeviceStatus.IN_STOCK },
-      });
+    // 2. Update device status to IN_STOCK
+    await db.device.update({
+      where: { id: deviceId },
+      data: { status: DeviceStatus.IN_STOCK },
+    });
 
-      // 3. Log audit action
-      await logAuditAction({
-        tx,
-        action: AuditAction.DEVICE_UNASSIGNED,
-        entityType: AuditEntityType.ASSIGNMENT,
-        entityId: deviceId,
-        entityName: `${activeAssignment.device.brand} ${activeAssignment.device.model} (${activeAssignment.device.serialNumber})`,
-        details: {
-          unassignedFromEmployee: `${activeAssignment.employee.name} (${activeAssignment.employee.department})`,
-          employeeId: activeAssignment.employeeId,
-          deviceId,
-        },
-        actor: user,
-      });
+    // 3. Log audit action
+    await logAuditAction({
+      action: AuditAction.DEVICE_UNASSIGNED,
+      entityType: AuditEntityType.ASSIGNMENT,
+      entityId: deviceId,
+      entityName: `${activeAssignment.device.brand} ${activeAssignment.device.model} (${activeAssignment.device.serialNumber})`,
+      details: {
+        unassignedFromEmployee: `${activeAssignment.employee.name} (${activeAssignment.employee.department})`,
+        employeeId: activeAssignment.employeeId,
+        deviceId,
+      },
+      actor: user,
     });
 
     revalidatePath("/devices");
