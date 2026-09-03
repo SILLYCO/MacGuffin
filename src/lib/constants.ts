@@ -91,3 +91,60 @@ export const DEVICE_STATUS_LABELS: Record<string, { label: string; bg: string; t
     border: "border-zinc-200 dark:border-zinc-800",
   },
 };
+
+export const PRINTER_BRAND_OPTIONS = [
+  "HP",
+  "Canon",
+  "Epson",
+  "Brother",
+  "Ricoh",
+  "Xerox",
+  "Kyocera",
+  "Lexmark",
+  "Konica Minolta",
+  "Pantum",
+] as const;
+
+export const PRINTER_STATUS_LABELS: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  WORKING: {
+    label: "Working",
+    bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
+    text: "text-emerald-700 dark:text-emerald-400",
+    border: "border-emerald-200 dark:border-emerald-800",
+  },
+  IN_REPAIR: {
+    label: "In Repair",
+    bg: "bg-amber-500/10 dark:bg-amber-500/20",
+    text: "text-amber-700 dark:text-amber-400",
+    border: "border-amber-200 dark:border-amber-800",
+  },
+};
+
+export const PRINTER_CONNECTION_TYPES = {
+  ETHERNET: {
+    label: "Wired Ethernet (LAN)",
+    shortLabel: "Ethernet",
+    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+    description: "Connected to company local network switch via RJ-45 Ethernet cable.",
+  },
+  WIFI: {
+    label: "Wi-Fi Wireless",
+    shortLabel: "Wi-Fi",
+    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+    description: "Connected to office wireless network (802.11 b/g/n/ac).",
+  },
+  ETHERNET_AND_WIFI: {
+    label: "Dual (LAN + Wi-Fi)",
+    shortLabel: "Dual",
+    badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20",
+    description: "Supports simultaneous wired LAN and wireless office printing.",
+  },
+  USB: {
+    label: "Direct USB Host",
+    shortLabel: "USB",
+    badge: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+    description: "Direct local USB cable connection to dedicated computer.",
+  },
+} as const;
+
+

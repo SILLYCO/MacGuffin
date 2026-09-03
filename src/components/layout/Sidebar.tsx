@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   Laptop,
+  Printer,
   Users,
   LayoutDashboard,
   Settings,
@@ -36,6 +37,11 @@ export function Sidebar({ user }: SidebarProps) {
       label: "Devices",
       href: "/devices",
       icon: Laptop,
+    },
+    {
+      label: "Printers",
+      href: "/printers",
+      icon: Printer,
     },
     {
       label: "Employees",

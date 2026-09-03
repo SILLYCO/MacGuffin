@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { UserCheck, X, AlertCircle } from "lucide-react";
 import { assignDeviceAction } from "@/lib/actions/devices";
 
@@ -33,6 +34,11 @@ export function ReassignModal({
   currentAssignedEmployeeId,
   onClose,
 }: ReassignModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,8 +65,10 @@ export function ReassignModal({
 
   const selectedEmp = employees.find((e) => e.id === selectedEmployeeId);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card border border-border shadow-xl rounded-xl w-full max-w-md overflow-hidden">
         <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2 text-foreground font-semibold">
@@ -144,6 +152,7 @@ export function ReassignModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

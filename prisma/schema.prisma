@@ -19,6 +19,18 @@ enum DeviceStatus {
   RETIRED
 }
 
+enum PrinterStatus {
+  WORKING
+  IN_REPAIR
+}
+
+enum PrinterConnectionType {
+  ETHERNET
+  WIFI
+  ETHERNET_AND_WIFI
+  USB
+}
+
 enum AuditAction {
   DEVICE_CREATED
   DEVICE_UPDATED
@@ -33,6 +45,11 @@ enum AuditAction {
   USER_ROLE_UPDATED
   USER_PASSWORD_RESET
   USER_DELETED
+  PRINTER_CREATED
+  PRINTER_UPDATED
+  PRINTER_STATUS_CHANGED
+  PRINTER_INK_REFILLED
+  PRINTER_DELETED
 }
 
 enum AuditEntityType {
@@ -40,6 +57,7 @@ enum AuditEntityType {
   EMPLOYEE
   USER
   ASSIGNMENT
+  PRINTER
 }
 
 model User {
@@ -130,4 +148,63 @@ model AuditLog {
   @@index([entityType])
   @@index([actorEmail])
   @@index([createdAt])
+}
+
+model Printer {
+  id                 String                @id @default(cuid())
+  brand              String
+  model              String
+  ipAddress          String
+  macAddress         String
+  status             PrinterStatus         @default(WORKING)
+  location           String?
+  // Hardware Capabilities
+  isColor            Boolean               @default(false)
+  canScan            Boolean               @default(true)
+  canCopy            Boolean               @default(true)
+  isDuplex           Boolean               @default(true)
+  connectionType     PrinterConnectionType @default(ETHERNET)
+  driverUrl          String?
+  lastInkRefillDate  DateTime?
+  lastInkRefillNotes String?
+  repairs            PrinterRepairRecord[]
+  inkRefills         PrinterInkRefill[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([status])
+  @@index([ipAddress])
+  @@index([isColor])
+  @@index([connectionType])
+}
+
+model PrinterRepairRecord {
+  id               String    @id @default(cuid())
+  printerId        String
+  printer          Printer   @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  issueDescription String
+  resolutionNotes  String?
+  vendor           String?
+  reportedAt       DateTime  @default(now())
+  resolvedAt       DateTime?
+  reportedByEmail  String
+  resolvedByEmail  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([printerId])
+  @@index([resolvedAt])
+}
+
+model PrinterInkRefill {
+  id              String   @id @default(cuid())
+  printerId       String
+  printer         Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  refillDate      DateTime @default(now())
+  notes           String?
+  refilledByEmail String
+  createdAt       DateTime @default(now())
+
+  @@index([printerId])
+  @@index([refillDate])
 }
