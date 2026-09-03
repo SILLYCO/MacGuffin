@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   Laptop,
+  Printer,
   Users,
   CheckCircle2,
   UserCheck,
@@ -18,7 +19,7 @@ import {
   ChevronRight,
   TrendingUp,
 } from "lucide-react";
-import { DeviceStatus } from "@prisma/client";
+import { DeviceStatus, PrinterStatus } from "@prisma/client";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -27,8 +28,12 @@ export default async function DashboardPage() {
   }
 
   // Fetch summary counts with efficient aggregation
-  const [deviceStats, totalEmployees, recentDevices] = await Promise.all([
+  const [deviceStats, printerStats, totalEmployees, recentDevices] = await Promise.all([
     db.device.groupBy({
+      by: ["status"],
+      _count: { status: true },
+    }),
+    db.printer.groupBy({
       by: ["status"],
       _count: { status: true },
     }),
@@ -56,6 +61,15 @@ export default async function DashboardPage() {
   for (const stat of deviceStats) {
     statusCounts[stat.status] = stat._count.status;
     totalDevices += stat._count.status;
+  }
+
+  let workingPrinters = 0;
+  let inRepairPrinters = 0;
+  let totalPrinters = 0;
+  for (const stat of printerStats) {
+    if (stat.status === PrinterStatus.WORKING) workingPrinters = stat._count.status;
+    if (stat.status === PrinterStatus.IN_REPAIR) inRepairPrinters = stat._count.status;
+    totalPrinters += stat._count.status;
   }
 
   const inStockCount = statusCounts.IN_STOCK;
@@ -87,15 +101,24 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
               {session.user.role === "IT" ? (
-                <Link
-                  href="/devices/new"
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
-                >
-                  <Laptop className="w-4 h-4" />
-                  + Register Device
-                </Link>
+                <>
+                  <Link
+                    href="/devices/new"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+                  >
+                    <Laptop className="w-4 h-4" />
+                    + Register Device
+                  </Link>
+                  <Link
+                    href="/printers/new"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border text-foreground font-bold text-sm shadow-sm hover:bg-muted transition-all"
+                  >
+                    <Printer className="w-4 h-4 text-primary" />
+                    + Register Printer
+                  </Link>
+                </>
               ) : (
                 <div className="px-4 py-2.5 rounded-xl bg-muted/60 border border-border text-xs font-semibold text-muted-foreground flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-purple-400" />
@@ -193,6 +216,24 @@ export default async function DashboardPage() {
             <div>
               <div className="text-3xl font-extrabold text-foreground tracking-tight">{retiredCount}</div>
               <p className="text-[11px] font-semibold text-zinc-400 mt-1">Decommissioned</p>
+            </div>
+          </Link>
+
+          {/* Network Printers */}
+          <Link href="/printers" className="glass-card-interactive p-5 space-y-3 border-sky-500/30 group">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400">
+                Printers
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-blue">
+                <Printer className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <div className="text-3xl font-extrabold text-foreground tracking-tight">{totalPrinters}</div>
+              <p className="text-[11px] font-semibold text-sky-400/80 mt-1 flex items-center gap-1">
+                {workingPrinters} working • {inRepairPrinters} in repair
+              </p>
             </div>
           </Link>
 

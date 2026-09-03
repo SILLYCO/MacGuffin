@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { KeyRound, X, AlertCircle, Eye, EyeOff, Sparkles, Check, Shield } from "lucide-react";
 import { Role } from "@prisma/client";
 import { RoleBadge } from "@/components/ui/RoleBadge";
@@ -17,6 +18,12 @@ interface ResetPasswordModalProps {
 }
 
 export function ResetPasswordModal({ user, onClose, onSuccess }: ResetPasswordModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -62,8 +69,10 @@ export function ResetPasswordModal({ user, onClose, onSuccess }: ResetPasswordMo
 
   const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="p-5 border-b border-border flex items-center justify-between">
@@ -189,6 +198,7 @@ export function ResetPasswordModal({ user, onClose, onSuccess }: ResetPasswordMo
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

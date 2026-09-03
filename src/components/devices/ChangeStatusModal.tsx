@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { RefreshCw, X, AlertCircle, Wrench, CheckCircle2, Archive, UserCheck, FileText, Check } from "lucide-react";
 import { DeviceStatus } from "@prisma/client";
 import { DEVICE_STATUS_LABELS } from "@/lib/constants";
@@ -29,6 +30,12 @@ export function ChangeStatusModal({
   activeRepair,
   onClose,
 }: ChangeStatusModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [selectedStatus, setSelectedStatus] = useState<DeviceStatus>(currentStatus);
   const [issueDescription, setIssueDescription] = useState("");
   const [vendor, setVendor] = useState("");
@@ -108,8 +115,10 @@ export function ChangeStatusModal({
     },
   ];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden space-y-4 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="p-5 border-b border-border flex items-center justify-between shrink-0">
@@ -297,6 +306,7 @@ export function ChangeStatusModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -17,6 +17,16 @@ export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
   };
 
   switch (status) {
+    case "WORKING":
+      styleConfig = {
+        label: "Working",
+        bg: "bg-emerald-500/10 dark:bg-emerald-500/15",
+        text: "text-emerald-700 dark:text-emerald-300 font-bold",
+        border: "border-emerald-500/30 dark:border-emerald-500/40",
+        dotColor: "bg-emerald-400 animate-pulse-glow",
+        glowClass: "glow-pill-emerald",
+      };
+      break;
     case "IN_STOCK":
       styleConfig = {
         label: "In Stock",
