@@ -3,23 +3,34 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireITRole } from "@/lib/permissions";
-import { DeviceStatus, AuditAction, AuditEntityType } from "@prisma/client";
+import {
+  DeviceStatus,
+  DeviceType,
+  ComponentType,
+  ComponentStatus,
+  ComponentTransferAction,
+  AuditAction,
+  AuditEntityType,
+} from "@prisma/client";
 import { logAuditAction } from "@/lib/audit";
 
 export async function createDeviceAction(formData: FormData) {
   const user = await requireITRole();
 
-  const brand = formData.get("brand") as string;
-  const model = formData.get("model") as string;
-  const cpu = formData.get("cpu") as string;
-  const ram = formData.get("ram") as string;
-  const storage = formData.get("storage") as string;
+  const deviceType = (formData.get("deviceType") as DeviceType) || DeviceType.LAPTOP;
+  const brand = (formData.get("brand") as string)?.trim();
+  const model = (formData.get("model") as string)?.trim();
+  const cpu = (formData.get("cpu") as string)?.trim();
+  const ram = (formData.get("ram") as string)?.trim() || "";
+  const storage = (formData.get("storage") as string)?.trim() || "";
   const serialNumber = (formData.get("serialNumber") as string)?.trim();
   const purchaseDateStr = formData.get("purchaseDate") as string;
   const warrantyExpiryStr = formData.get("warrantyExpiry") as string;
+  const assignedEmployeeId = (formData.get("assignedEmployeeId") as string)?.trim() || null;
+  const componentsJson = (formData.get("componentsJson") as string)?.trim() || null;
 
-  if (!brand || !model || !cpu || !ram || !storage || !serialNumber) {
-    return { error: "Brand, model, CPU, RAM, storage, and serial number are required." };
+  if (!brand || !model || !cpu || !serialNumber) {
+    return { error: "Brand, model, CPU, and serial number are required." };
   }
 
   // Check unique serial number
@@ -34,9 +45,11 @@ export async function createDeviceAction(formData: FormData) {
   try {
     const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
     const warrantyExpiry = warrantyExpiryStr ? new Date(warrantyExpiryStr) : null;
+    const initialStatus = assignedEmployeeId ? DeviceStatus.ASSIGNED : DeviceStatus.IN_STOCK;
 
     const device = await db.device.create({
       data: {
+        deviceType,
         brand,
         model,
         cpu,
@@ -45,7 +58,7 @@ export async function createDeviceAction(formData: FormData) {
         serialNumber,
         purchaseDate,
         warrantyExpiry,
-        status: DeviceStatus.IN_STOCK,
+        status: initialStatus,
       },
     });
 
@@ -63,12 +76,192 @@ export async function createDeviceAction(formData: FormData) {
         serialNumber,
         purchaseDate: purchaseDate?.toISOString() || null,
         warrantyExpiry: warrantyExpiry?.toISOString() || null,
-        status: DeviceStatus.IN_STOCK,
+        status: initialStatus,
       },
       actor: user,
     });
 
+    // 1. Handle Immediate Employee Assignment if requested
+    let targetEmployee = null;
+    if (assignedEmployeeId) {
+      targetEmployee = await db.employee.findUnique({ where: { id: assignedEmployeeId } });
+      if (targetEmployee) {
+        const now = new Date();
+
+        // Close out employee's current active assignment if any
+        const currentEmployeeAssignment = await db.assignment.findFirst({
+          where: { employeeId: assignedEmployeeId, unassignedAt: null },
+        });
+
+        if (currentEmployeeAssignment) {
+          await db.assignment.update({
+            where: { id: currentEmployeeAssignment.id },
+            data: { unassignedAt: now },
+          });
+
+          if (currentEmployeeAssignment.deviceId !== device.id) {
+            await db.device.update({
+              where: { id: currentEmployeeAssignment.deviceId },
+              data: { status: DeviceStatus.IN_STOCK },
+            });
+          }
+        }
+
+        // Create assignment record
+        await db.assignment.create({
+          data: {
+            deviceId: device.id,
+            employeeId: assignedEmployeeId,
+            assignedAt: now,
+          },
+        });
+
+        await logAuditAction({
+          action: AuditAction.DEVICE_ASSIGNED,
+          entityType: AuditEntityType.ASSIGNMENT,
+          entityId: device.id,
+          entityName: `${brand} ${model} (${serialNumber})`,
+          details: {
+            assignedToEmployee: `${targetEmployee.name} (${targetEmployee.department})`,
+            employeeId: assignedEmployeeId,
+            deviceId: device.id,
+          },
+          actor: user,
+        });
+      }
+    }
+
+    // 2. Handle Inline Components Mounting if provided
+    if (componentsJson) {
+      try {
+        const stagedParts = JSON.parse(componentsJson);
+        if (Array.isArray(stagedParts)) {
+          const hostDeviceName = `${brand} ${model} (${serialNumber})`;
+          const employeeContext = targetEmployee ? ` assigned to ${targetEmployee.name}` : "";
+
+          for (const part of stagedParts) {
+            if (part.stockComponentId) {
+              // Existing in-stock component mounted into this new device
+              await db.component.update({
+                where: { id: part.stockComponentId },
+                data: {
+                  status: ComponentStatus.INSTALLED,
+                  deviceId: device.id,
+                },
+              });
+
+              await db.componentTransfer.create({
+                data: {
+                  componentId: part.stockComponentId,
+                  fromDeviceId: null,
+                  fromDeviceName: "IT Storage Stock",
+                  toDeviceId: device.id,
+                  toDeviceName: hostDeviceName,
+                  actionType: ComponentTransferAction.INSTALLED_FROM_STOCK,
+                  reason: `Mounted into newly created computer${employeeContext}`,
+                  performedByEmail: user.email,
+                },
+              });
+
+              await logAuditAction({
+                action: AuditAction.COMPONENT_INSTALLED,
+                entityType: AuditEntityType.COMPONENT,
+                entityId: part.stockComponentId,
+                entityName: `${part.brand || "Stock"} ${part.model || "Component"} (${part.serialNumber})`,
+                details: {
+                  deviceId: device.id,
+                  deviceTitle: hostDeviceName,
+                  assignedEmployee: targetEmployee?.name || null,
+                },
+                actor: user,
+              });
+            } else if (part.type) {
+              // Brand new component registered and mounted into this device
+              const cleanBrand = (part.brand || "Generic").trim();
+              const defaultModel =
+                part.type === "RAM"
+                  ? "Memory Module"
+                  : part.type === "STORAGE_SSD"
+                  ? "Solid State Drive"
+                  : part.type === "STORAGE_HDD"
+                  ? "Hard Disk Drive"
+                  : part.type === "GPU"
+                  ? "Graphics Card"
+                  : part.type === "CPU"
+                  ? "Processor"
+                  : part.type === "POWER_SUPPLY"
+                  ? "Power Supply"
+                  : "Standard Module";
+              const cleanModel = (part.model || defaultModel).trim();
+              const cleanSerial =
+                part.serialNumber && part.serialNumber.trim()
+                  ? part.serialNumber.trim()
+                  : `GEN-${(part.type || "CMP").substring(0, 3)}-${Date.now().toString(36).toUpperCase()}-${Math.random()
+                      .toString(36)
+                      .substring(2, 6)
+                      .toUpperCase()}`;
+
+              const existingCmp = await db.component.findUnique({
+                where: { serialNumber: cleanSerial },
+              });
+
+              if (!existingCmp) {
+                const newComponent = await db.component.create({
+                  data: {
+                    type: part.type as ComponentType,
+                    brand: cleanBrand,
+                    model: cleanModel,
+                    capacity: (part.capacity || "").trim() || null,
+                    specs: (part.specs || "").trim() || null,
+                    serialNumber: cleanSerial,
+                    status: ComponentStatus.INSTALLED,
+                    deviceId: device.id,
+                    notes: (part.notes || "").trim() || null,
+                  },
+                });
+
+                await db.componentTransfer.create({
+                  data: {
+                    componentId: newComponent.id,
+                    fromDeviceId: null,
+                    fromDeviceName: "Initial Device Registration",
+                    toDeviceId: device.id,
+                    toDeviceName: hostDeviceName,
+                    actionType: ComponentTransferAction.INSTALLED_FROM_STOCK,
+                    reason: `Brand new part registered and mounted into computer${employeeContext}`,
+                    performedByEmail: user.email,
+                  },
+                });
+
+                await logAuditAction({
+                  action: AuditAction.COMPONENT_CREATED,
+                  entityType: AuditEntityType.COMPONENT,
+                  entityId: newComponent.id,
+                  entityName: `${newComponent.brand} ${newComponent.model} (${newComponent.serialNumber})`,
+                  details: {
+                    type: newComponent.type,
+                    capacity: newComponent.capacity,
+                    installedIntoDevice: hostDeviceName,
+                    assignedEmployee: targetEmployee?.name || null,
+                  },
+                  actor: user,
+                });
+              }
+            }
+          }
+        }
+      } catch (parseErr) {
+        console.error("Error parsing componentsJson:", parseErr);
+      }
+    }
+
     revalidatePath("/devices");
+    revalidatePath(`/devices/${device.id}`);
+    revalidatePath("/components");
+    revalidatePath("/employees");
+    if (assignedEmployeeId) {
+      revalidatePath(`/employees/${assignedEmployeeId}`);
+    }
     revalidatePath("/dashboard");
     revalidatePath("/audit-logs");
     return { success: true, deviceId: device.id };
@@ -81,17 +274,18 @@ export async function createDeviceAction(formData: FormData) {
 export async function updateDeviceAction(deviceId: string, formData: FormData) {
   const user = await requireITRole();
 
-  const brand = formData.get("brand") as string;
-  const model = formData.get("model") as string;
-  const cpu = formData.get("cpu") as string;
-  const ram = formData.get("ram") as string;
-  const storage = formData.get("storage") as string;
+  const deviceType = (formData.get("deviceType") as DeviceType) || DeviceType.LAPTOP;
+  const brand = (formData.get("brand") as string)?.trim();
+  const model = (formData.get("model") as string)?.trim();
+  const cpu = (formData.get("cpu") as string)?.trim();
+  const ram = (formData.get("ram") as string)?.trim() || "";
+  const storage = (formData.get("storage") as string)?.trim() || "";
   const serialNumber = (formData.get("serialNumber") as string)?.trim();
   const purchaseDateStr = formData.get("purchaseDate") as string;
   const warrantyExpiryStr = formData.get("warrantyExpiry") as string;
 
-  if (!brand || !model || !cpu || !ram || !storage || !serialNumber) {
-    return { error: "Brand, model, CPU, RAM, storage, and serial number are required." };
+  if (!brand || !model || !cpu || !serialNumber) {
+    return { error: "Brand, model, CPU, and serial number are required." };
   }
 
   const existingSerial = await db.device.findFirst({
@@ -112,6 +306,7 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     const updated = await db.device.update({
       where: { id: deviceId },
       data: {
+        deviceType,
         brand,
         model,
         cpu,

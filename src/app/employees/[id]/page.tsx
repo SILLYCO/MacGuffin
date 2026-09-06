@@ -12,9 +12,13 @@ import {
   Mail,
   Building,
   Laptop,
+  Monitor,
   History,
   ShieldAlert,
+  Layers,
 } from "lucide-react";
+import { COMPONENT_TYPES } from "@/lib/constants";
+import { computeDeviceLiveSpecs } from "@/lib/hardware";
 
 interface EmployeeDetailPageProps {
   params: Promise<{ id: string }>;
@@ -35,7 +39,13 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
       assignments: {
         orderBy: { assignedAt: "desc" },
         include: {
-          device: true,
+          device: {
+            include: {
+              components: {
+                orderBy: { createdAt: "desc" },
+              },
+            },
+          },
         },
       },
     },
@@ -46,6 +56,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
   }
 
   const activeAssignment = employee.assignments.find((a) => a.unassignedAt === null);
+  const liveSpecs = activeAssignment ? computeDeviceLiveSpecs(activeAssignment.device) : null;
 
   return (
     <AppShell user={session.user}>
@@ -152,13 +163,55 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                   </div>
                   <div>
                     <span className="block text-[10px] text-muted-foreground uppercase">RAM</span>
-                    <span className="font-medium text-foreground">{activeAssignment.device.ram}</span>
+                    <span className="font-medium text-foreground">
+                      {liveSpecs?.ramSummary || activeAssignment.device.ram}
+                    </span>
                   </div>
                   <div>
                     <span className="block text-[10px] text-muted-foreground uppercase">Storage</span>
-                    <span className="font-medium text-foreground">{activeAssignment.device.storage}</span>
+                    <span className="font-medium text-foreground">
+                      {liveSpecs?.storageSummary || activeAssignment.device.storage}
+                    </span>
                   </div>
                 </div>
+
+                {/* Installed Modular Components in Employee Custody */}
+                {activeAssignment.device.components && activeAssignment.device.components.length > 0 && (
+                  <div className="pt-3 border-t border-blue-500/20 space-y-2">
+                    <span className="text-[11px] font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                      <Layers className="w-3.5 h-3.5 text-blue-400" />
+                      Hardware Parts in Employee's Possession ({activeAssignment.device.components.length})
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {activeAssignment.device.components.map((part) => {
+                        const typeDef = COMPONENT_TYPES[part.type as keyof typeof COMPONENT_TYPES] || COMPONENT_TYPES.OTHER;
+                        return (
+                          <div
+                            key={part.id}
+                            className="p-2.5 rounded-lg bg-background/80 border border-border/80 flex items-center justify-between gap-2"
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`px-1 py-0.2 rounded text-[9px] font-bold border ${typeDef.badge}`}>
+                                  {typeDef.shortLabel}
+                                </span>
+                                <span className="font-bold text-foreground text-xs truncate">
+                                  {part.brand} {part.model}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                {part.capacity ? `${part.capacity} • ` : ""}{part.specs || ""}
+                              </div>
+                            </div>
+                            <span className="font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/60 shrink-0">
+                              {part.serialNumber}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="text-xs text-muted-foreground pt-2">
                   Assigned on:{" "}

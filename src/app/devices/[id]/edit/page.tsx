@@ -35,6 +35,7 @@ export default async function EditDevicePage({ params }: EditDevicePageProps) {
       <DeviceForm
         initialData={{
           id: device.id,
+          deviceType: device.deviceType,
           brand: device.brand,
           model: device.model,
           cpu: device.cpu,

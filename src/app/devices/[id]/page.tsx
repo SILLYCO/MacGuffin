@@ -6,8 +6,11 @@ import { db } from "@/lib/db";
 import { AppShell } from "@/components/layout/AppShell";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DeviceDetailActions } from "./DeviceDetailActions";
+import { DeviceInstalledComponentsCard } from "@/components/devices/DeviceInstalledComponentsCard";
 import {
   Laptop,
+  Monitor,
+  Server,
   ArrowLeft,
   Calendar,
   Cpu,
@@ -18,7 +21,11 @@ import {
   Wrench,
   CheckCircle2,
   Clock,
+  Sparkles,
+  Layers,
 } from "lucide-react";
+import { DEVICE_TYPES } from "@/lib/constants";
+import { computeDeviceLiveSpecs } from "@/lib/hardware";
 
 interface DeviceDetailPageProps {
   params: Promise<{ id: string }>;
@@ -32,20 +39,50 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
 
   const { id } = await params;
 
-  const device = await db.device.findUnique({
-    where: { id },
-    include: {
-      assignments: {
-        orderBy: { assignedAt: "desc" },
-        include: {
-          employee: true,
+  const [device, stockComponents, allDevices] = await Promise.all([
+    db.device.findUnique({
+      where: { id },
+      include: {
+        assignments: {
+          orderBy: { assignedAt: "desc" },
+          include: {
+            employee: true,
+          },
+        },
+        repairs: {
+          orderBy: { createdAt: "desc" },
+        },
+        components: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            transfers: {
+              orderBy: { transferredAt: "desc" },
+            },
+          },
         },
       },
-      repairs: {
-        orderBy: { createdAt: "desc" },
+    }),
+    db.component.findMany({
+      where: { status: "IN_STOCK" },
+      orderBy: { createdAt: "desc" },
+      include: {
+        transfers: {
+          orderBy: { transferredAt: "desc" },
+        },
       },
-    },
-  });
+    }),
+    db.device.findMany({
+      where: { status: { not: "RETIRED" } },
+      select: {
+        id: true,
+        brand: true,
+        model: true,
+        serialNumber: true,
+        deviceType: true,
+      },
+      orderBy: { brand: "asc" },
+    }),
+  ]);
 
   if (!device) {
     notFound();
@@ -56,6 +93,9 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
 
   // Active repair (if currently in repair)
   const activeRepair = device.repairs.find((r) => r.resolvedAt === null);
+
+  // Dynamically compute live aggregated specs from mounted components
+  const liveSpecs = computeDeviceLiveSpecs(device);
 
   // All employees for IT reassign modal
   const allEmployees = session.user.role === "IT"
@@ -95,10 +135,24 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {device.brand} {device.model}
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+                  {device.deviceType === "DESKTOP_PC" ? (
+                    <Monitor className="w-6 h-6 text-purple-500" />
+                  ) : device.deviceType === "WORKSTATION" || device.deviceType === "SERVER" ? (
+                    <Server className="w-6 h-6 text-indigo-500" />
+                  ) : (
+                    <Laptop className="w-6 h-6 text-primary" />
+                  )}
+                  <span>{device.brand} {device.model}</span>
                 </h1>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                    DEVICE_TYPES[device.deviceType || "LAPTOP"]?.badge || "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {DEVICE_TYPES[device.deviceType || "LAPTOP"]?.label || "Laptop"}
+                </span>
                 <StatusBadge status={device.status} />
               </div>
               <p className="text-xs font-mono text-muted-foreground mt-0.5">
@@ -242,10 +296,18 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
 
           {/* Hardware Specs Card */}
           <div className="md:col-span-2 glass-card p-6 space-y-6">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-primary" />
-              Hardware Specifications
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-primary" />
+                Hardware Specifications
+              </h2>
+              {liveSpecs.hasModularComponents && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                  <Sparkles className="w-3 h-3 text-purple-500" />
+                  Live Derived from {liveSpecs.totalModularPartsCount} Modular {liveSpecs.totalModularPartsCount === 1 ? "Part" : "Parts"}
+                </span>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="p-3.5 rounded-lg bg-muted/30 border border-border/60">
@@ -256,25 +318,64 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
               </div>
 
               <div className="p-3.5 rounded-lg bg-muted/30 border border-border/60">
-                <span className="block text-[11px] font-semibold text-muted-foreground uppercase">
-                  Memory (RAM)
+                <div className="flex items-center justify-between">
+                  <span className="block text-[11px] font-semibold text-muted-foreground uppercase">
+                    Memory (RAM)
+                  </span>
+                  {liveSpecs.isRamDerived && (
+                    <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 px-1 py-0.2 rounded bg-purple-500/10">
+                      LIVE
+                    </span>
+                  )}
+                </div>
+                <span className="font-semibold text-foreground text-sm">
+                  {liveSpecs.ramSummary}
                 </span>
-                <span className="font-semibold text-foreground text-sm">{device.ram}</span>
+                {liveSpecs.ramDetails && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                    {liveSpecs.ramDetails}
+                  </div>
+                )}
               </div>
 
               <div className="p-3.5 rounded-lg bg-muted/30 border border-border/60">
-                <span className="block text-[11px] font-semibold text-muted-foreground uppercase">
-                  Storage
+                <div className="flex items-center justify-between">
+                  <span className="block text-[11px] font-semibold text-muted-foreground uppercase">
+                    Storage
+                  </span>
+                  {liveSpecs.isStorageDerived && (
+                    <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 px-1 py-0.2 rounded bg-purple-500/10">
+                      LIVE
+                    </span>
+                  )}
+                </div>
+                <span className="font-semibold text-foreground text-sm">
+                  {liveSpecs.storageSummary}
                 </span>
-                <span className="font-semibold text-foreground text-sm">{device.storage}</span>
+                {liveSpecs.storageDetails && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                    {liveSpecs.storageDetails}
+                  </div>
+                )}
               </div>
+
+              {liveSpecs.gpuSummary && (
+                <div className="p-3.5 rounded-lg bg-purple-500/5 border border-purple-500/20 col-span-2 sm:col-span-1">
+                  <span className="block text-[11px] font-semibold text-purple-600 dark:text-purple-400 uppercase">
+                    Dedicated GPU
+                  </span>
+                  <span className="font-semibold text-foreground text-sm">
+                    {liveSpecs.gpuSummary}
+                  </span>
+                </div>
+              )}
 
               <div className="p-3.5 rounded-lg bg-muted/30 border border-border/60">
                 <span className="block text-[11px] font-semibold text-muted-foreground uppercase">
-                  Brand & Model
+                  Form Factor
                 </span>
                 <span className="font-semibold text-foreground text-sm">
-                  {device.brand} {device.model}
+                  {DEVICE_TYPES[device.deviceType || "LAPTOP"]?.label || "Laptop"}
                 </span>
               </div>
 
@@ -310,6 +411,18 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
             </div>
           </div>
         </div>
+
+        {/* Installed Components & Swappable Parts Section */}
+        <DeviceInstalledComponentsCard
+          deviceId={device.id}
+          deviceTitle={`${device.brand} ${device.model}`}
+          deviceType={device.deviceType}
+          isIT={isIT}
+          components={device.components as any}
+          stockComponents={stockComponents as any}
+          allDevices={allDevices as any}
+          assignedEmployee={activeAssignment ? activeAssignment.employee : null}
+        />
 
         {/* Maintenance & Repair History Section */}
         <div className="glass-card p-6 space-y-4">

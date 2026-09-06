@@ -19,6 +19,40 @@ enum DeviceStatus {
   RETIRED
 }
 
+enum DeviceType {
+  LAPTOP
+  DESKTOP_PC
+  WORKSTATION
+  SERVER
+}
+
+enum ComponentType {
+  RAM
+  STORAGE_SSD
+  STORAGE_HDD
+  GPU
+  CPU
+  MOTHERBOARD
+  POWER_SUPPLY
+  NETWORK_CARD
+  OTHER
+}
+
+enum ComponentStatus {
+  IN_STOCK
+  INSTALLED
+  DEFECTIVE
+  RETIRED
+}
+
+enum ComponentTransferAction {
+  INSTALLED_FROM_STOCK
+  DETACHED_TO_STOCK
+  TRANSFERRED_BETWEEN_DEVICES
+  MARKED_DEFECTIVE
+  RETIRED
+}
+
 enum PrinterStatus {
   WORKING
   IN_REPAIR
@@ -50,6 +84,12 @@ enum AuditAction {
   PRINTER_STATUS_CHANGED
   PRINTER_INK_REFILLED
   PRINTER_DELETED
+  COMPONENT_CREATED
+  COMPONENT_UPDATED
+  COMPONENT_INSTALLED
+  COMPONENT_DETACHED
+  COMPONENT_TRANSFERRED
+  COMPONENT_DELETED
 }
 
 enum AuditEntityType {
@@ -58,6 +98,7 @@ enum AuditEntityType {
   USER
   ASSIGNMENT
   PRINTER
+  COMPONENT
 }
 
 model User {
@@ -84,20 +125,26 @@ model Employee {
 }
 
 model Device {
-  id             String       @id @default(cuid())
+  id             String              @id @default(cuid())
+  deviceType     DeviceType          @default(LAPTOP)
   brand          String
   model          String
   cpu            String
   ram            String
   storage        String
-  serialNumber   String       @unique
+  serialNumber   String              @unique
   purchaseDate   DateTime?
   warrantyExpiry DateTime?
-  status         DeviceStatus   @default(IN_STOCK)
+  status         DeviceStatus        @default(IN_STOCK)
   assignments    Assignment[]
   repairs        RepairRecord[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  components     Component[]
+  transfersFrom  ComponentTransfer[] @relation("TransfersFrom")
+  transfersTo    ComponentTransfer[] @relation("TransfersTo")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([deviceType])
 }
 
 model Assignment {
@@ -207,4 +254,54 @@ model PrinterInkRefill {
 
   @@index([printerId])
   @@index([refillDate])
+}
+
+model Component {
+  id           String          @id @default(cuid())
+  type         ComponentType
+  brand        String          // e.g. Samsung, Corsair, Kingston, Crucial, Nvidia
+  model        String          // e.g. 980 Pro, Vengeance LPX, RTX 4060
+  capacity     String?         // e.g. "16 GB", "1 TB", "850 W"
+  specs        String?         // e.g. "DDR4 3200MHz CL16", "NVMe PCIe 4.0 M.2", "GDDR6"
+  serialNumber String          @unique // Essential for individual tracking
+  status       ComponentStatus @default(IN_STOCK)
+  notes        String?
+
+  // Current physical mounting location (null if in IT storage shelf)
+  deviceId     String?
+  device       Device?         @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  // Full chronological transfer trail
+  transfers    ComponentTransfer[]
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([deviceId])
+}
+
+model ComponentTransfer {
+  id               String                  @id @default(cuid())
+  componentId      String
+  component        Component               @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  fromDeviceId     String?
+  fromDevice       Device?                 @relation("TransfersFrom", fields: [fromDeviceId], references: [id], onDelete: SetNull)
+  fromDeviceName   String?                 // Preserves audit trail even if device is deleted
+
+  toDeviceId       String?
+  toDevice         Device?                 @relation("TransfersTo", fields: [toDeviceId], references: [id], onDelete: SetNull)
+  toDeviceName     String?                 // Preserves audit trail
+
+  actionType       ComponentTransferAction
+  reason           String?                 // e.g. "Upgraded user to 32GB RAM", "Salvaged working SSD"
+  performedByEmail String
+  transferredAt    DateTime                @default(now())
+
+  @@index([componentId])
+  @@index([fromDeviceId])
+  @@index([toDeviceId])
+  @@index([transferredAt])
 }
