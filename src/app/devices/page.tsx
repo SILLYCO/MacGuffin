@@ -14,6 +14,16 @@ export default async function DevicesPage() {
   const devices = await db.device.findMany({
     orderBy: { createdAt: "desc" },
     include: {
+      components: {
+        select: {
+          id: true,
+          type: true,
+          brand: true,
+          model: true,
+          capacity: true,
+          specs: true,
+        },
+      },
       assignments: {
         where: { unassignedAt: null },
         include: {
@@ -32,6 +42,7 @@ export default async function DevicesPage() {
 
   const formattedDevices = devices.map((d) => ({
     id: d.id,
+    deviceType: d.deviceType,
     brand: d.brand,
     model: d.model,
     cpu: d.cpu,
@@ -39,6 +50,8 @@ export default async function DevicesPage() {
     storage: d.storage,
     serialNumber: d.serialNumber,
     status: d.status,
+    componentsCount: d.components.length,
+    components: d.components,
     currentAssignment: d.assignments[0]
       ? { employee: d.assignments[0].employee }
       : null,

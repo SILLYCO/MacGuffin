@@ -3,13 +3,27 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, AlertCircle, Cpu, HardDrive, Calendar } from "lucide-react";
-import { BRAND_OPTIONS } from "@/lib/constants";
+import {
+  ArrowLeft,
+  Save,
+  AlertCircle,
+  Cpu,
+  HardDrive,
+  Calendar,
+  Laptop,
+  Monitor,
+  Server,
+  Layers,
+  Sparkles,
+} from "lucide-react";
+import { BRAND_OPTIONS, DEVICE_TYPES } from "@/lib/constants";
+import { DeviceType } from "@prisma/client";
 import { createDeviceAction, updateDeviceAction } from "@/lib/actions/devices";
 
 interface DeviceFormProps {
   initialData?: {
     id: string;
+    deviceType?: DeviceType;
     brand: string;
     model: string;
     cpu: string;
@@ -56,9 +70,18 @@ export function DeviceForm({ initialData }: DeviceFormProps) {
   const initialStorageParsed = parseStorage(initialData?.storage);
 
   // Form field states
+  const [deviceType, setDeviceType] = useState<DeviceType>(
+    initialData?.deviceType || DeviceType.LAPTOP
+  );
   const [brand, setBrand] = useState(initialData?.brand || BRAND_OPTIONS[0]);
   const [model, setModel] = useState(initialData?.model || "");
   const [cpu, setCpu] = useState(initialData?.cpu || "");
+
+  // Specs mode: Modular auto-calculation vs Optional static baseline
+  const hasExistingSpecs = Boolean(initialData?.ram?.trim() || initialData?.storage?.trim());
+  const [specsMode, setSpecsMode] = useState<"MODULAR" | "BASELINE">(
+    hasExistingSpecs ? "BASELINE" : "MODULAR"
+  );
 
   // RAM state
   const [ramAmount, setRamAmount] = useState(initialRamParsed.amount);
@@ -97,22 +120,22 @@ export function DeviceForm({ initialData }: DeviceFormProps) {
     e.preventDefault();
     setError(null);
 
-    if (!ramAmount || isNaN(Number(ramAmount)) || Number(ramAmount) <= 0) {
-      setError("Please enter a valid numeric RAM capacity.");
-      return;
-    }
-
-    if (!storageAmount || isNaN(Number(storageAmount)) || Number(storageAmount) <= 0) {
-      setError("Please enter a valid numeric Storage capacity.");
-      return;
-    }
-
     setLoading(true);
 
-    const formattedRam = `${ramAmount.trim()} ${ramUnit}`;
-    const formattedStorage = `${storageAmount.trim()} ${storageUnit} ${storageType}`.trim();
+    let formattedRam = "";
+    let formattedStorage = "";
+
+    if (specsMode === "BASELINE") {
+      if (ramAmount && !isNaN(Number(ramAmount)) && Number(ramAmount) > 0) {
+        formattedRam = `${ramAmount.trim()} ${ramUnit}`;
+      }
+      if (storageAmount && !isNaN(Number(storageAmount)) && Number(storageAmount) > 0) {
+        formattedStorage = `${storageAmount.trim()} ${storageUnit} ${storageType}`.trim();
+      }
+    }
 
     const formData = new FormData();
+    formData.append("deviceType", deviceType);
     formData.append("brand", brand);
     formData.append("model", model);
     formData.append("cpu", cpu);
@@ -155,12 +178,12 @@ export function DeviceForm({ initialData }: DeviceFormProps) {
         </Link>
         <div>
           <h1 className="text-2xl font-extrabold text-foreground">
-            {isEditing ? "Edit Device Specs" : "Add New Device"}
+            {isEditing ? "Edit Computer Specs" : "Add New Computer"}
           </h1>
           <p className="text-sm text-muted-foreground">
             {isEditing
-              ? "Update device specifications or warranty details"
-              : "Register a new laptop device into company inventory"}
+              ? "Update machine specifications or warranty details"
+              : "Register a new laptop or desktop PC into company inventory"}
           </p>
         </div>
       </div>
@@ -173,6 +196,46 @@ export function DeviceForm({ initialData }: DeviceFormProps) {
       )}
 
       <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6">
+        {/* Computer Form Factor Selection */}
+        <div className="space-y-2">
+          <label className="block text-xs font-bold uppercase text-muted-foreground">
+            Computer Form Factor
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { type: DeviceType.LAPTOP, label: "Laptop", desc: "Mobile notebook", icon: Laptop },
+              { type: DeviceType.DESKTOP_PC, label: "Desktop PC", desc: "Tower / Mini PC", icon: Monitor },
+              { type: DeviceType.WORKSTATION, label: "Workstation", desc: "High-power tower", icon: Cpu },
+              { type: DeviceType.SERVER, label: "Server Node", desc: "Rack / Standalone", icon: Server },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isSelected = deviceType === item.type;
+              return (
+                <button
+                  type="button"
+                  key={item.type}
+                  onClick={() => setDeviceType(item.type)}
+                  className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                    isSelected
+                      ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary"
+                      : "border-border bg-card/60 hover:bg-muted/60 text-muted-foreground"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-extrabold text-foreground">{item.label}</div>
+                    <div className="text-[10px] text-muted-foreground">{item.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         {/* Device Brand & Model */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -230,115 +293,174 @@ export function DeviceForm({ initialData }: DeviceFormProps) {
             />
           </div>
 
-          {/* RAM & Storage Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-border/50">
-            {/* Numeric RAM Input */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-foreground">
-                RAM Capacity
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="1024"
-                  placeholder="e.g. 16, 24, 36"
-                  value={ramAmount}
-                  onChange={(e) => setRamAmount(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-                  required
-                />
-                <select
-                  value={ramUnit}
-                  onChange={(e) => setRamUnit(e.target.value)}
-                  className="px-3 py-2.5 text-sm font-bold bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="GB">GB</option>
-                  <option value="TB">TB</option>
-                </select>
+          {/* Memory & Storage Configuration Section */}
+          <div className="space-y-4 pt-3 border-t border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="block text-xs font-bold text-foreground">
+                  Memory (RAM) & Storage Configuration
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Dynamic auto-calculation from swappable parts vs optional static baseline
+                </span>
               </div>
 
-              {/* Quick RAM presets */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground mr-1">Presets:</span>
-                {ramPresets.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => {
-                      setRamAmount(val);
-                      setRamUnit("GB");
-                    }}
-                    className={`px-2 py-0.5 text-[11px] font-mono rounded-lg border transition-all ${
-                      ramAmount === val && ramUnit === "GB"
-                        ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
-                        : "bg-background/80 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {val}GB
-                  </button>
-                ))}
+              {/* Mode Segmented Switcher */}
+              <div className="inline-flex p-1 bg-muted/60 border border-border/70 rounded-xl text-xs font-bold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSpecsMode("MODULAR")}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                    specsMode === "MODULAR"
+                      ? "bg-purple-500/20 text-purple-700 dark:text-purple-300 shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Modular Auto-Calculated</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSpecsMode("BASELINE")}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                    specsMode === "BASELINE"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <span>Quick Baseline</span>
+                </button>
               </div>
             </div>
 
-            {/* Numeric Storage Input */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-foreground">
-                Storage Capacity & Type
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="8000"
-                  placeholder="e.g. 512, 1, 2"
-                  value={storageAmount}
-                  onChange={(e) => setStorageAmount(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-                  required
-                />
-                <select
-                  value={storageUnit}
-                  onChange={(e) => setStorageUnit(e.target.value)}
-                  className="px-2.5 py-2.5 text-sm font-bold bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring shrink-0"
-                >
-                  <option value="GB">GB</option>
-                  <option value="TB">TB</option>
-                </select>
-                <select
-                  value={storageType}
-                  onChange={(e) => setStorageType(e.target.value)}
-                  className="px-2.5 py-2.5 text-xs font-medium bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring shrink-0"
-                >
-                  <option value="SSD">SSD</option>
-                  <option value="NVMe SSD">NVMe SSD</option>
-                  <option value="HDD">HDD</option>
-                </select>
-              </div>
-
-              {/* Quick Storage presets */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground mr-1">Presets:</span>
-                {storagePresets.map((p) => (
+            {specsMode === "MODULAR" ? (
+              <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-2">
+                <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                  <Sparkles className="w-4 h-4 shrink-0 text-purple-500" />
+                  <span>Dynamic Live Modular Tracking (Zero Form Editing)</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Total RAM and Storage are automatically calculated in real-time from the physical modules (SO-DIMM sticks, M.2 NVMe SSDs) mounted inside this machine. When you unplug, upgrade, or swap parts, the live hardware specs update automatically without needing to edit this form.
+                </p>
+                <div className="pt-1">
                   <button
-                    key={`${p.amount}${p.unit}`}
                     type="button"
-                    onClick={() => {
-                      setStorageAmount(p.amount);
-                      setStorageUnit(p.unit);
-                      setStorageType(p.type);
-                    }}
-                    className={`px-2 py-0.5 text-[11px] font-mono rounded-lg border transition-all ${
-                      storageAmount === p.amount && storageUnit === p.unit
-                        ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
-                        : "bg-background/80 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
-                    }`}
+                    onClick={() => setSpecsMode("BASELINE")}
+                    className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline"
                   >
-                    {p.amount}{p.unit}
+                    Want to specify an optional fallback text baseline instead? Click here.
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 rounded-xl bg-muted/30 border border-border/60">
+                {/* Optional Baseline RAM */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-foreground">
+                      Baseline RAM (Optional)
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">e.g. 16 GB</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="1024"
+                      placeholder="e.g. 16, 32"
+                      value={ramAmount}
+                      onChange={(e) => setRamAmount(e.target.value)}
+                      className="w-full px-3.5 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                    />
+                    <select
+                      value={ramUnit}
+                      onChange={(e) => setRamUnit(e.target.value)}
+                      className="px-3 py-2 text-sm font-bold bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="GB">GB</option>
+                      <option value="TB">TB</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {ramPresets.slice(0, 5).map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => {
+                          setRamAmount(val);
+                          setRamUnit("GB");
+                        }}
+                        className={`px-2 py-0.5 text-[11px] font-mono rounded-lg border transition-all ${
+                          ramAmount === val && ramUnit === "GB"
+                            ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
+                            : "bg-background/80 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {val}GB
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Optional Baseline Storage */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-foreground">
+                      Baseline Storage (Optional)
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">e.g. 512 GB SSD</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="8000"
+                      placeholder="e.g. 512, 1"
+                      value={storageAmount}
+                      onChange={(e) => setStorageAmount(e.target.value)}
+                      className="w-full px-3.5 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                    />
+                    <select
+                      value={storageUnit}
+                      onChange={(e) => setStorageUnit(e.target.value)}
+                      className="px-2.5 py-2 text-sm font-bold bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring shrink-0"
+                    >
+                      <option value="GB">GB</option>
+                      <option value="TB">TB</option>
+                    </select>
+                    <select
+                      value={storageType}
+                      onChange={(e) => setStorageType(e.target.value)}
+                      className="px-2.5 py-2 text-xs font-medium bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring shrink-0"
+                    >
+                      <option value="SSD">SSD</option>
+                      <option value="NVMe SSD">NVMe SSD</option>
+                      <option value="HDD">HDD</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {storagePresets.slice(0, 4).map((p) => (
+                      <button
+                        key={`${p.amount}${p.unit}`}
+                        type="button"
+                        onClick={() => {
+                          setStorageAmount(p.amount);
+                          setStorageUnit(p.unit);
+                          setStorageType(p.type);
+                        }}
+                        className={`px-2 py-0.5 text-[11px] font-mono rounded-lg border transition-all ${
+                          storageAmount === p.amount && storageUnit === p.unit
+                            ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
+                            : "bg-background/80 text-muted-foreground border-border hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {p.amount}{p.unit}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

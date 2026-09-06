@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react";
 import {
   Laptop,
   Printer,
+  Cpu,
   Users,
   LayoutDashboard,
   Settings,
@@ -37,6 +38,11 @@ export function Sidebar({ user }: SidebarProps) {
       label: "Devices",
       href: "/devices",
       icon: Laptop,
+    },
+    {
+      label: "Components & Parts",
+      href: "/components",
+      icon: Cpu,
     },
     {
       label: "Printers",

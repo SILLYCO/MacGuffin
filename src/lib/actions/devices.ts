@@ -3,23 +3,24 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireITRole } from "@/lib/permissions";
-import { DeviceStatus, AuditAction, AuditEntityType } from "@prisma/client";
+import { DeviceStatus, DeviceType, AuditAction, AuditEntityType } from "@prisma/client";
 import { logAuditAction } from "@/lib/audit";
 
 export async function createDeviceAction(formData: FormData) {
   const user = await requireITRole();
 
-  const brand = formData.get("brand") as string;
-  const model = formData.get("model") as string;
-  const cpu = formData.get("cpu") as string;
-  const ram = formData.get("ram") as string;
-  const storage = formData.get("storage") as string;
+  const deviceType = (formData.get("deviceType") as DeviceType) || DeviceType.LAPTOP;
+  const brand = (formData.get("brand") as string)?.trim();
+  const model = (formData.get("model") as string)?.trim();
+  const cpu = (formData.get("cpu") as string)?.trim();
+  const ram = (formData.get("ram") as string)?.trim() || "";
+  const storage = (formData.get("storage") as string)?.trim() || "";
   const serialNumber = (formData.get("serialNumber") as string)?.trim();
   const purchaseDateStr = formData.get("purchaseDate") as string;
   const warrantyExpiryStr = formData.get("warrantyExpiry") as string;
 
-  if (!brand || !model || !cpu || !ram || !storage || !serialNumber) {
-    return { error: "Brand, model, CPU, RAM, storage, and serial number are required." };
+  if (!brand || !model || !cpu || !serialNumber) {
+    return { error: "Brand, model, CPU, and serial number are required." };
   }
 
   // Check unique serial number
@@ -37,6 +38,7 @@ export async function createDeviceAction(formData: FormData) {
 
     const device = await db.device.create({
       data: {
+        deviceType,
         brand,
         model,
         cpu,
@@ -81,17 +83,18 @@ export async function createDeviceAction(formData: FormData) {
 export async function updateDeviceAction(deviceId: string, formData: FormData) {
   const user = await requireITRole();
 
-  const brand = formData.get("brand") as string;
-  const model = formData.get("model") as string;
-  const cpu = formData.get("cpu") as string;
-  const ram = formData.get("ram") as string;
-  const storage = formData.get("storage") as string;
+  const deviceType = (formData.get("deviceType") as DeviceType) || DeviceType.LAPTOP;
+  const brand = (formData.get("brand") as string)?.trim();
+  const model = (formData.get("model") as string)?.trim();
+  const cpu = (formData.get("cpu") as string)?.trim();
+  const ram = (formData.get("ram") as string)?.trim() || "";
+  const storage = (formData.get("storage") as string)?.trim() || "";
   const serialNumber = (formData.get("serialNumber") as string)?.trim();
   const purchaseDateStr = formData.get("purchaseDate") as string;
   const warrantyExpiryStr = formData.get("warrantyExpiry") as string;
 
-  if (!brand || !model || !cpu || !ram || !storage || !serialNumber) {
-    return { error: "Brand, model, CPU, RAM, storage, and serial number are required." };
+  if (!brand || !model || !cpu || !serialNumber) {
+    return { error: "Brand, model, CPU, and serial number are required." };
   }
 
   const existingSerial = await db.device.findFirst({
@@ -112,6 +115,7 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     const updated = await db.device.update({
       where: { id: deviceId },
       data: {
+        deviceType,
         brand,
         model,
         cpu,

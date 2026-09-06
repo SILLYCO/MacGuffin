@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   Laptop,
   Printer,
+  Cpu,
   Users,
   CheckCircle2,
   UserCheck,
@@ -19,7 +20,7 @@ import {
   ChevronRight,
   TrendingUp,
 } from "lucide-react";
-import { DeviceStatus, PrinterStatus } from "@prisma/client";
+import { DeviceStatus, DeviceType, PrinterStatus, ComponentStatus } from "@prisma/client";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -28,12 +29,20 @@ export default async function DashboardPage() {
   }
 
   // Fetch summary counts with efficient aggregation
-  const [deviceStats, printerStats, totalEmployees, recentDevices] = await Promise.all([
+  const [deviceStats, deviceTypeStats, printerStats, componentStats, totalEmployees, recentDevices] = await Promise.all([
     db.device.groupBy({
       by: ["status"],
       _count: { status: true },
     }),
+    db.device.groupBy({
+      by: ["deviceType"],
+      _count: { deviceType: true },
+    }),
     db.printer.groupBy({
+      by: ["status"],
+      _count: { status: true },
+    }),
+    db.component.groupBy({
       by: ["status"],
       _count: { status: true },
     }),
@@ -45,6 +54,9 @@ export default async function DashboardPage() {
         assignments: {
           where: { unassignedAt: null },
           include: { employee: true },
+        },
+        components: {
+          select: { id: true, type: true, brand: true, model: true },
         },
       },
     }),
@@ -63,6 +75,13 @@ export default async function DashboardPage() {
     totalDevices += stat._count.status;
   }
 
+  let laptopCount = 0;
+  let desktopCount = 0;
+  for (const stat of deviceTypeStats) {
+    if (stat.deviceType === DeviceType.LAPTOP) laptopCount += stat._count.deviceType;
+    else desktopCount += stat._count.deviceType;
+  }
+
   let workingPrinters = 0;
   let inRepairPrinters = 0;
   let totalPrinters = 0;
@@ -70,6 +89,15 @@ export default async function DashboardPage() {
     if (stat.status === PrinterStatus.WORKING) workingPrinters = stat._count.status;
     if (stat.status === PrinterStatus.IN_REPAIR) inRepairPrinters = stat._count.status;
     totalPrinters += stat._count.status;
+  }
+
+  let inStockComponents = 0;
+  let installedComponents = 0;
+  let totalComponents = 0;
+  for (const stat of componentStats) {
+    if (stat.status === ComponentStatus.IN_STOCK) inStockComponents = stat._count.status;
+    if (stat.status === ComponentStatus.INSTALLED) installedComponents = stat._count.status;
+    totalComponents += stat._count.status;
   }
 
   const inStockCount = statusCounts.IN_STOCK;
@@ -97,7 +125,7 @@ export default async function DashboardPage() {
                 Hardware Inventory Overview
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Real-time metrics, device allocation rates, and lifecycle status across all company laptops and employees.
+                Real-time metrics, device allocation rates, and lifecycle status across all company laptops, desktop PCs, components, and employees.
               </p>
             </div>
 
@@ -110,6 +138,13 @@ export default async function DashboardPage() {
                   >
                     <Laptop className="w-4 h-4" />
                     + Register Device
+                  </Link>
+                  <Link
+                    href="/components"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border text-foreground font-bold text-sm shadow-sm hover:bg-muted transition-all"
+                  >
+                    <Cpu className="w-4 h-4 text-purple-500" />
+                    + Stock Component
                   </Link>
                   <Link
                     href="/printers/new"
@@ -129,131 +164,139 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Metric Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {/* Total Devices */}
-          <Link href="/devices" className="glass-card-interactive p-5 space-y-3 group">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                Total Devices
-              </span>
-              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                <Laptop className="w-4 h-4" />
+        {/* Metric Cards Grid - Organized in 2 Clean Rows */}
+        <div className="space-y-4">
+          {/* Row 1: Core Computers Fleet */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Computers */}
+            <Link href="/devices" className="glass-card-interactive p-5 space-y-3 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                  Total Computers
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                  <Laptop className="w-4 h-4" />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-foreground tracking-tight">{totalDevices}</div>
-              <p className="text-[11px] font-semibold text-muted-foreground mt-1 flex items-center gap-1">
-                Hardware fleet <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-              </p>
-            </div>
-          </Link>
+              <div>
+                <div className="text-3xl font-extrabold text-foreground tracking-tight">{totalDevices}</div>
+                <p className="text-[11px] font-semibold text-muted-foreground mt-1 flex items-center gap-1">
+                  {laptopCount} Laptops • {desktopCount} Desktops
+                </p>
+              </div>
+            </Link>
 
-          {/* Assigned Devices */}
-          <Link href="/devices?status=ASSIGNED" className="glass-card-interactive p-5 space-y-3 border-blue-500/30 group">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
-                Assigned
-              </span>
-              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-blue">
-                <UserCheck className="w-4 h-4" />
+            {/* Assigned Devices */}
+            <Link href="/devices?status=ASSIGNED" className="glass-card-interactive p-5 space-y-3 border-blue-500/30 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
+                  Assigned
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-blue">
+                  <UserCheck className="w-4 h-4" />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-foreground tracking-tight">{assignedCount}</div>
-              <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                <div className="bg-blue-500 h-full rounded-full" style={{ width: `${assignedPercentage}%` }} />
+              <div>
+                <div className="text-3xl font-extrabold text-foreground tracking-tight">{assignedCount}</div>
+                <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                  <div className="bg-blue-500 h-full rounded-full" style={{ width: `${assignedPercentage}%` }} />
+                </div>
+                <p className="text-[11px] font-semibold text-blue-400/80 mt-1.5">{assignedPercentage}% active deployment</p>
               </div>
-              <p className="text-[11px] font-semibold text-blue-400/80 mt-1.5">{assignedPercentage}% active deployment</p>
-            </div>
-          </Link>
+            </Link>
 
-          {/* In Stock Devices */}
-          <Link href="/devices?status=IN_STOCK" className="glass-card-interactive p-5 space-y-3 border-emerald-500/30 group">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
-                In Stock
-              </span>
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-emerald">
-                <CheckCircle2 className="w-4 h-4" />
+            {/* In Stock Devices */}
+            <Link href="/devices?status=IN_STOCK" className="glass-card-interactive p-5 space-y-3 border-emerald-500/30 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
+                  In Stock Computers
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-emerald">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-foreground tracking-tight">{inStockCount}</div>
-              <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${inStockPercentage}%` }} />
+              <div>
+                <div className="text-3xl font-extrabold text-foreground tracking-tight">{inStockCount}</div>
+                <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${inStockPercentage}%` }} />
+                </div>
+                <p className="text-[11px] font-semibold text-emerald-400/80 mt-1.5">{inStockCount} ready for deployment</p>
               </div>
-              <p className="text-[11px] font-semibold text-emerald-400/80 mt-1.5">{inStockCount} ready for assignment</p>
-            </div>
-          </Link>
+            </Link>
 
-          {/* In Repair Devices */}
-          <Link href="/devices?status=IN_REPAIR" className="glass-card-interactive p-5 space-y-3 border-amber-500/30 group">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400">
-                In Repair
-              </span>
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-amber">
-                <Wrench className="w-4 h-4" />
+            {/* In Repair Devices */}
+            <Link href="/devices?status=IN_REPAIR" className="glass-card-interactive p-5 space-y-3 border-amber-500/30 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400">
+                  In Repair
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-amber">
+                  <Wrench className="w-4 h-4" />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-foreground tracking-tight">{inRepairCount}</div>
-              <p className="text-[11px] font-semibold text-amber-400/80 mt-1">Under IT maintenance</p>
-            </div>
-          </Link>
+              <div>
+                <div className="text-3xl font-extrabold text-foreground tracking-tight">{inRepairCount}</div>
+                <p className="text-[11px] font-semibold text-amber-400/80 mt-1">Under IT maintenance</p>
+              </div>
+            </Link>
+          </div>
 
-          {/* Retired Devices */}
-          <Link href="/devices?status=RETIRED" className="glass-card-interactive p-5 space-y-3 group">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
-                Retired
-              </span>
-              <div className="w-9 h-9 rounded-xl bg-zinc-500/10 text-zinc-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                <Archive className="w-4 h-4" />
+          {/* Row 2: Components & Peripheral Infrastructure */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Spare Hardware Components */}
+            <Link href="/components" className="glass-card-interactive p-5 space-y-3 border-purple-500/30 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-purple-400">
+                  Spare Components Stock
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-purple">
+                  <Cpu className="w-4 h-4" />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-foreground tracking-tight">{retiredCount}</div>
-              <p className="text-[11px] font-semibold text-zinc-400 mt-1">Decommissioned</p>
-            </div>
-          </Link>
+              <div>
+                <div className="text-3xl font-extrabold text-foreground tracking-tight">{inStockComponents}</div>
+                <p className="text-[11px] font-semibold text-purple-400/80 mt-1 flex items-center gap-1">
+                  Ready on shelf • {installedComponents} mounted in PCs
+                </p>
+              </div>
+            </Link>
 
-          {/* Network Printers */}
-          <Link href="/printers" className="glass-card-interactive p-5 space-y-3 border-sky-500/30 group">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400">
-                Printers
-              </span>
-              <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-blue">
-                <Printer className="w-4 h-4" />
+            {/* Network Printers */}
+            <Link href="/printers" className="glass-card-interactive p-5 space-y-3 border-sky-500/30 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400">
+                  Network Printers
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-blue">
+                  <Printer className="w-4 h-4" />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-foreground tracking-tight">{totalPrinters}</div>
-              <p className="text-[11px] font-semibold text-sky-400/80 mt-1 flex items-center gap-1">
-                {workingPrinters} working • {inRepairPrinters} in repair
-              </p>
-            </div>
-          </Link>
+              <div>
+                <div className="text-3xl font-extrabold text-foreground tracking-tight">{totalPrinters}</div>
+                <p className="text-[11px] font-semibold text-sky-400/80 mt-1 flex items-center gap-1">
+                  {workingPrinters} working • {inRepairPrinters} in repair
+                </p>
+              </div>
+            </Link>
 
-          {/* Total Employees */}
-          <Link href="/employees" className="glass-card-interactive p-5 space-y-3 border-purple-500/30 group">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-purple-400">
-                Employees
-              </span>
-              <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-purple">
-                <Users className="w-4 h-4" />
+            {/* Total Employees */}
+            <Link href="/employees" className="glass-card-interactive p-5 space-y-3 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                  Staff Directory
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                  <Users className="w-4 h-4" />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-3xl font-extrabold text-foreground tracking-tight">{totalEmployees}</div>
-              <p className="text-[11px] font-semibold text-purple-400/80 mt-1 flex items-center gap-1">
-                Staff directory <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-              </p>
-            </div>
-          </Link>
+              <div>
+                <div className="text-3xl font-extrabold text-foreground tracking-tight">{totalEmployees}</div>
+                <p className="text-[11px] font-semibold text-muted-foreground mt-1 flex items-center gap-1">
+                  Company personnel <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                </p>
+              </div>
+            </Link>
+          </div>
         </div>
 
         {/* Inventory Stream Cards Grid */}
