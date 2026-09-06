@@ -96,20 +96,44 @@ export function ComponentModal({
       return;
     }
 
-    if (!model.trim() || !serialNumber.trim()) {
-      setError("Model name and serial number are required.");
+    const isRamOrStorage = type === "RAM" || type.startsWith("STORAGE");
+    if (isRamOrStorage && !capacity.trim()) {
+      setError("Capacity is required for RAM and Storage components (e.g. 16 GB, 512 GB).");
       return;
     }
+
+    const defaultModel =
+      type === "RAM"
+        ? "Memory Module"
+        : type === "STORAGE_SSD"
+        ? "Solid State Drive"
+        : type === "STORAGE_HDD"
+        ? "Hard Disk Drive"
+        : type === "GPU"
+        ? "Graphics Card"
+        : type === "CPU"
+        ? "Processor"
+        : type === "POWER_SUPPLY"
+        ? "Power Supply"
+        : "Standard Module";
+
+    const cleanModel = model.trim() || defaultModel;
+    const cleanSerial =
+      serialNumber.trim() ||
+      `GEN-${(type || "CMP").substring(0, 3)}-${Date.now().toString(36).toUpperCase()}-${Math.random()
+        .toString(36)
+        .substring(2, 6)
+        .toUpperCase()}`;
 
     setLoading(true);
 
     const formData = new FormData();
     formData.append("type", type);
     formData.append("brand", finalBrand);
-    formData.append("model", model.trim());
+    formData.append("model", cleanModel);
     formData.append("capacity", capacity.trim());
     formData.append("specs", specs.trim());
-    formData.append("serialNumber", serialNumber.trim());
+    formData.append("serialNumber", cleanSerial);
     formData.append("notes", notes.trim());
     if (!isEditing && targetDeviceId) {
       formData.append("deviceId", targetDeviceId);
@@ -237,20 +261,19 @@ export function ComponentModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold uppercase text-muted-foreground mb-1.5">
-                Model Name / Line
+                Model Name / Line <span className="font-normal text-muted-foreground lowercase">(optional)</span>
               </label>
               <input
                 type="text"
-                placeholder="e.g. 980 PRO or Vengeance LPX"
+                placeholder={type === "RAM" ? "e.g. DDR4 SO-DIMM (or leave blank)" : "e.g. 980 PRO (or leave blank)"}
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 className="w-full px-3.5 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
-                required
               />
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-muted-foreground mb-1.5">
-                Capacity / Rating
+                Capacity / Rating {type === "RAM" || type.startsWith("STORAGE") ? <span className="text-primary">*</span> : <span className="font-normal text-muted-foreground lowercase">(optional)</span>}
               </label>
               <input
                 type="text"
@@ -265,7 +288,7 @@ export function ComponentModal({
           {/* Technical Specs & Clock/Form-Factor */}
           <div>
             <label className="block text-xs font-bold uppercase text-muted-foreground mb-1.5">
-              Technical Specifications (Optional)
+              Technical Specifications <span className="font-normal text-muted-foreground lowercase">(optional)</span>
             </label>
             <input
               type="text"
@@ -281,7 +304,7 @@ export function ComponentModal({
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
                 <Hash className="w-3.5 h-3.5 text-primary" />
-                Serial Number / Barcode Tag
+                Serial Number / Barcode Tag <span className="font-normal text-muted-foreground lowercase">(optional - auto-gen if blank)</span>
               </label>
               <button
                 type="button"
@@ -293,11 +316,10 @@ export function ComponentModal({
             </div>
             <input
               type="text"
-              placeholder="e.g. SN-RAM-2849104"
+              placeholder="Leave blank to auto-generate or enter custom SN"
               value={serialNumber}
               onChange={(e) => setSerialNumber(e.target.value)}
               className="w-full px-3.5 py-2 text-sm bg-background border border-input rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-ring"
-              required
             />
           </div>
 

@@ -421,6 +421,7 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
           components={device.components as any}
           stockComponents={stockComponents as any}
           allDevices={allDevices as any}
+          assignedEmployee={activeAssignment ? activeAssignment.employee : null}
         />
 
         {/* Maintenance & Repair History Section */}

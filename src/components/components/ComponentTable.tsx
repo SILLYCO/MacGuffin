@@ -19,6 +19,7 @@ import {
   Archive,
   Monitor,
   Laptop,
+  User,
   X,
 } from "lucide-react";
 import { ComponentType, ComponentStatus, ComponentTransferAction } from "@prisma/client";
@@ -59,6 +60,14 @@ interface ComponentItem {
     model: string;
     serialNumber: string;
     deviceType?: string;
+    assignments?: Array<{
+      employee: {
+        id: string;
+        name: string;
+        email: string;
+        department: string;
+      };
+    }>;
   } | null;
   transfers: TransferRecord[];
 }
@@ -117,6 +126,8 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
   const filteredComponents = components.filter((c) => {
     const searchLower = search.toLowerCase();
     const mountedDev = c.device ? `${c.device.brand} ${c.device.model} ${c.device.serialNumber}`.toLowerCase() : "";
+    const assignedEmp = c.device?.assignments?.[0]?.employee;
+    const employeeText = assignedEmp ? `${assignedEmp.name} ${assignedEmp.email} ${assignedEmp.department}`.toLowerCase() : "";
 
     const matchesSearch =
       c.brand.toLowerCase().includes(searchLower) ||
@@ -124,7 +135,8 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
       c.serialNumber.toLowerCase().includes(searchLower) ||
       (c.capacity && c.capacity.toLowerCase().includes(searchLower)) ||
       (c.specs && c.specs.toLowerCase().includes(searchLower)) ||
-      mountedDev.includes(searchLower);
+      mountedDev.includes(searchLower) ||
+      employeeText.includes(searchLower);
 
     const matchesType = typeFilter === "ALL" || c.type === typeFilter;
     const matchesStatus = statusFilter === "ALL" || c.status === statusFilter;
@@ -334,15 +346,15 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
       {/* Components Table */}
       <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[1140px]">
             <thead className="bg-muted/50 border-b border-border/80 text-[11px] uppercase font-extrabold text-muted-foreground tracking-wider">
               <tr>
-                <th className="px-6 py-4">Component & Model</th>
-                <th className="px-6 py-4">Capacity & Specs</th>
-                <th className="px-6 py-4">Serial Number</th>
-                <th className="px-6 py-4">Current Placement</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[240px]">Component & Model</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[180px]">Capacity & Specs</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[150px]">Serial Number</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[230px]">Current Placement</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[120px]">Status</th>
+                <th className="px-6 py-4 text-right whitespace-nowrap min-w-[220px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -364,7 +376,7 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                   return (
                     <tr key={c.id} className="hover:bg-muted/40 transition-colors group">
                       {/* Component info */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
                             {c.type === "RAM" ? (
@@ -381,7 +393,7 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                                 {c.brand} {c.model}
                               </span>
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${typeDef.badge}`}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${typeDef.badge}`}
                               >
                                 {typeDef.shortLabel}
                               </span>
@@ -394,7 +406,7 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                       </td>
 
                       {/* Capacity & Specs */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="space-y-0.5">
                           {c.capacity ? (
                             <span className="font-bold text-foreground text-xs inline-block">
@@ -404,7 +416,7 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                             <span className="text-xs text-muted-foreground italic">Standard</span>
                           )}
                           {c.specs && (
-                            <div className="text-[11px] text-muted-foreground line-clamp-1">
+                            <div className="text-[11px] text-muted-foreground font-mono">
                               {c.specs}
                             </div>
                           )}
@@ -412,35 +424,55 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                       </td>
 
                       {/* Serial Number */}
-                      <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 rounded-md bg-muted/60 border border-border/80 font-mono text-xs text-muted-foreground">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2.5 py-1 rounded-md bg-muted/60 border border-border/80 font-mono text-xs text-muted-foreground inline-block">
                           {c.serialNumber}
                         </span>
                       </td>
 
-                      {/* Current Placement */}
-                      <td className="px-6 py-4">
+                      {/* Current Placement & Employee Custody */}
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {c.device ? (
-                          <Link
-                            href={`/devices/${c.device.id}`}
-                            className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
-                          >
-                            <Monitor className="w-3.5 h-3.5" />
-                            <span>{c.device.brand} {c.device.model}</span>
-                          </Link>
+                          <div className="space-y-1">
+                            <Link
+                              href={`/devices/${c.device.id}`}
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-foreground hover:text-primary transition-colors hover:underline"
+                            >
+                              <Monitor className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span>{c.device.brand} {c.device.model}</span>
+                            </Link>
+
+                            {c.device.assignments && c.device.assignments[0]?.employee ? (
+                              <div className="flex items-center gap-1.5 text-[11px]">
+                                <span className="text-muted-foreground">In custody:</span>
+                                <Link
+                                  href={`/employees/${c.device.assignments[0].employee.id}`}
+                                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                >
+                                  <User className="w-3 h-3 shrink-0" />
+                                  <span>{c.device.assignments[0].employee.name}</span>
+                                </Link>
+                              </div>
+                            ) : (
+                              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                <span>In Stock (Machine unassigned)</span>
+                              </div>
+                            )}
+                          </div>
                         ) : c.status === "DEFECTIVE" ? (
                           <span className="text-xs text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
-                            <AlertTriangle className="w-3.5 h-3.5" /> Quarantine Bin
+                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Quarantine Bin
                           </span>
                         ) : (
                           <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> IT Storage Shelf
+                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> IT Storage Shelf
                           </span>
                         )}
                       </td>
 
                       {/* Status */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusDef.bg} ${statusDef.text} ${statusDef.border}`}
                         >
@@ -449,17 +481,17 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                       </td>
 
                       {/* Actions */}
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="px-6 py-4 text-right whitespace-nowrap min-w-[220px]">
+                        <div className="flex items-center justify-end gap-1.5 shrink-0">
                           {/* Swap / Mount actions */}
                           {isIT && c.status === "IN_STOCK" && (
                             <button
                               type="button"
                               onClick={() => setInstallingComponent(c)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 shrink-0"
                               title="Mount into computer"
                             >
-                              <Wrench className="w-3.5 h-3.5" />
+                              <Wrench className="w-3.5 h-3.5 shrink-0" />
                               <span>Install</span>
                             </button>
                           )}
@@ -468,11 +500,11 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                             <button
                               type="button"
                               onClick={() => setSwappingComponent(c)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 transition-all border border-purple-500/20"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 transition-all border border-purple-500/20 shrink-0"
                               title="Detach to shelf or hot-swap to another PC"
                             >
-                              <ArrowRightLeft className="w-3.5 h-3.5" />
-                              <span>Swap / Detach</span>
+                              <ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />
+                              <span>Swap</span>
                             </button>
                           )}
 
@@ -480,10 +512,10 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                           <button
                             type="button"
                             onClick={() => setHistoryComponent(c)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
                             title="View transfer audit history"
                           >
-                            <History className="w-4 h-4" />
+                            <History className="w-4 h-4 shrink-0" />
                           </button>
 
                           {/* Edit / Delete */}
@@ -492,19 +524,19 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                               <button
                                 type="button"
                                 onClick={() => setEditingComponent(c)}
-                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
                                 title="Edit component"
                               >
-                                <Edit2 className="w-3.5 h-3.5" />
+                                <Edit2 className="w-3.5 h-3.5 shrink-0" />
                               </button>
                               <button
                                 type="button"
                                 disabled={deletingId === c.id}
                                 onClick={() => handleDelete(c.id, `${c.brand} ${c.model}`)}
-                                className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 shrink-0"
                                 title="Delete component"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-3.5 h-3.5 shrink-0" />
                               </button>
                             </>
                           )}

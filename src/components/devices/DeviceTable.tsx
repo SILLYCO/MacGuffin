@@ -255,15 +255,15 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
       {/* Devices Table */}
       <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[1020px]">
             <thead className="bg-muted/50 border-b border-border/80 text-[11px] uppercase font-extrabold text-muted-foreground tracking-wider">
               <tr>
-                <th className="px-6 py-4">Computer & Model</th>
-                <th className="px-6 py-4">Hardware Specs (CPU / RAM / Storage)</th>
-                <th className="px-6 py-4">Serial Number</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Assigned Employee</th>
-                <th className="px-6 py-4 text-right">Action</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[240px]">Computer & Model</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[260px]">Hardware Specs</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[150px]">Serial Number</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[120px]">Status</th>
+                <th className="px-6 py-4 whitespace-nowrap min-w-[180px]">Assigned Employee</th>
+                <th className="px-6 py-4 text-right whitespace-nowrap min-w-[130px]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -287,7 +287,7 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
                       key={device.id}
                       className="hover:bg-muted/40 transition-colors group"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform ${
@@ -310,12 +310,12 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/devices/${device.id}`}
-                                className="font-bold text-foreground group-hover:text-primary transition-colors text-base"
+                                className="font-bold text-foreground group-hover:text-primary transition-colors text-sm hover:underline"
                               >
                                 {device.brand} {device.model}
                               </Link>
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${
                                   DEVICE_TYPES[device.deviceType || "LAPTOP"]?.badge ||
                                   "bg-muted text-muted-foreground"
                                 }`}
@@ -329,22 +329,22 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="space-y-1">
-                          <div className="font-bold text-foreground text-xs flex items-center gap-1.5">
-                            <Cpu className="w-3.5 h-3.5 text-primary" />
-                            {device.cpu}
+                          <div className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                            <Cpu className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <span>{device.cpu}</span>
                           </div>
                           <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                            <HardDrive className="w-3.5 h-3.5 text-muted-foreground" />
+                            <HardDrive className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <span>{liveSpecs.ramSummary}</span>
-                            <span>•</span>
+                            <span className="text-border">•</span>
                             <span>{liveSpecs.storageSummary}</span>
                           </div>
                           {liveSpecs.hasModularComponents ? (
                             <div className="pt-0.5">
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
-                                <Layers className="w-3 h-3" />
+                                <Layers className="w-3 h-3 shrink-0" />
                                 <span>{liveSpecs.totalModularPartsCount} modular {liveSpecs.totalModularPartsCount === 1 ? "part" : "parts"}</span>
                                 {liveSpecs.gpuSummary ? <span>• {liveSpecs.gpuSummary}</span> : null}
                               </span>
@@ -352,15 +352,15 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 rounded-md bg-muted/60 border border-border/80 font-mono text-xs text-muted-foreground">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2.5 py-1 rounded-md bg-muted/60 border border-border/80 font-mono text-xs text-muted-foreground inline-block">
                           {device.serialNumber}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge status={device.status} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {emp ? (
                           <Link
                             href={`/employees/${emp.id}`}
@@ -375,13 +375,13 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
                           <span className="text-xs text-muted-foreground italic font-medium">Unassigned</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
                         <Link
                           href={`/devices/${device.id}`}
                           className="inline-flex items-center gap-1 px-3.5 py-2 text-xs font-bold text-primary bg-primary/10 rounded-xl hover:bg-primary/20 transition-all border border-primary/20"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          View Details
+                          <span>View Details</span>
                           <ChevronRight className="w-3 h-3 ml-0.5 opacity-70" />
                         </Link>
                       </td>

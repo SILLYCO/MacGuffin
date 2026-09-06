@@ -259,6 +259,7 @@ export const COMPONENT_STATUS_LABELS: Record<string, { label: string; bg: string
 };
 
 export const COMPONENT_BRAND_OPTIONS = [
+  "Generic",
   "Samsung",
   "Crucial",
   "Corsair",

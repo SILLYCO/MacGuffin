@@ -61,6 +61,12 @@ interface DeviceInstalledComponentsCardProps {
   components: ComponentItem[];
   stockComponents: ComponentItem[];
   allDevices: DeviceOption[];
+  assignedEmployee?: {
+    id: string;
+    name: string;
+    email: string;
+    department: string;
+  } | null;
 }
 
 export function DeviceInstalledComponentsCard({
@@ -71,6 +77,7 @@ export function DeviceInstalledComponentsCard({
   components,
   stockComponents,
   allDevices,
+  assignedEmployee,
 }: DeviceInstalledComponentsCardProps) {
   // Modal states
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
@@ -88,10 +95,17 @@ export function DeviceInstalledComponentsCard({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div>
-          <h2 className="text-sm font-extrabold uppercase tracking-wider text-foreground flex items-center gap-2">
-            <Layers className="w-4 h-4 text-purple-500" />
-            Installed Components & Modular Parts ({components.length})
-          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-extrabold uppercase tracking-wider text-foreground flex items-center gap-2">
+              <Layers className="w-4 h-4 text-purple-500" />
+              Installed Components & Modular Parts ({components.length})
+            </h2>
+            {assignedEmployee && (
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                👤 In Custody of {assignedEmployee.name}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Physical swappable pieces mounted inside this {deviceType === "DESKTOP_PC" ? "desktop PC" : "computer"} (RAM sticks, SSDs, GPUs)
           </p>

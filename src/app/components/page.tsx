@@ -22,6 +22,19 @@ export default async function ComponentsPage() {
             model: true,
             serialNumber: true,
             deviceType: true,
+            assignments: {
+              where: { unassignedAt: null },
+              select: {
+                employee: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    department: true,
+                  },
+                },
+              },
+            },
           },
         },
         transfers: {

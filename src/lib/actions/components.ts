@@ -27,17 +27,40 @@ export async function createComponentAction(formData: FormData) {
   const notes = (formData.get("notes") as string)?.trim() || null;
   const targetDeviceId = (formData.get("deviceId") as string)?.trim() || null;
 
-  if (!type || !brand || !model || !serialNumber) {
-    return { error: "Component type, brand, model, and serial number are required." };
+  if (!type || !brand) {
+    return { error: "Component type and brand are required." };
   }
+
+  if ((type === "RAM" || type.startsWith("STORAGE")) && !capacity) {
+    return { error: "Capacity is required for RAM and Storage components (e.g. 16 GB, 512 GB)." };
+  }
+
+  const finalModel =
+    model ||
+    (type === "RAM"
+      ? "Memory Module"
+      : type === "STORAGE_SSD"
+      ? "Solid State Drive"
+      : type === "STORAGE_HDD"
+      ? "Hard Disk Drive"
+      : type === "GPU"
+      ? "Graphics Card"
+      : "Standard Module");
+
+  const finalSerial =
+    serialNumber ||
+    `GEN-${type.substring(0, 3)}-${Date.now().toString(36).toUpperCase()}-${Math.random()
+      .toString(36)
+      .substring(2, 6)
+      .toUpperCase()}`;
 
   // Check unique serial number
   const existing = await db.component.findUnique({
-    where: { serialNumber },
+    where: { serialNumber: finalSerial },
   });
 
   if (existing) {
-    return { error: `A component with serial number "${serialNumber}" already exists in inventory.` };
+    return { error: `A component with serial number "${finalSerial}" already exists in inventory.` };
   }
 
   try {
@@ -47,7 +70,7 @@ export async function createComponentAction(formData: FormData) {
     if (targetDeviceId) {
       targetDevice = await db.device.findUnique({
         where: { id: targetDeviceId },
-        select: { id: true, brand: true, model: true },
+        select: { id: true, brand: true, model: true, serialNumber: true },
       });
       if (targetDevice) {
         initialStatus = ComponentStatus.INSTALLED;
@@ -58,10 +81,10 @@ export async function createComponentAction(formData: FormData) {
       data: {
         type,
         brand,
-        model,
+        model: finalModel,
         capacity,
         specs,
-        serialNumber,
+        serialNumber: finalSerial,
         notes,
         status: initialStatus,
         deviceId: targetDevice ? targetDevice.id : null,
@@ -88,14 +111,14 @@ export async function createComponentAction(formData: FormData) {
       action: AuditAction.COMPONENT_CREATED,
       entityType: AuditEntityType.COMPONENT,
       entityId: component.id,
-      entityName: `${brand} ${model} (${serialNumber})`,
+      entityName: `${brand} ${finalModel} (${finalSerial})`,
       details: {
         type,
         brand,
-        model,
+        model: finalModel,
         capacity,
         specs,
-        serialNumber,
+        serialNumber: finalSerial,
         status: initialStatus,
         mountedTo: targetDevice ? `${targetDevice.brand} ${targetDevice.model}` : "IT Storage Shelf",
       },
@@ -129,19 +152,33 @@ export async function updateComponentAction(componentId: string, formData: FormD
   const serialNumber = (formData.get("serialNumber") as string)?.trim();
   const notes = (formData.get("notes") as string)?.trim() || null;
 
-  if (!type || !brand || !model || !serialNumber) {
-    return { error: "Component type, brand, model, and serial number are required." };
+  if (!type || !brand) {
+    return { error: "Component type and brand are required." };
   }
+
+  if ((type === "RAM" || type.startsWith("STORAGE")) && !capacity) {
+    return { error: "Capacity is required for RAM and Storage components (e.g. 16 GB, 512 GB)." };
+  }
+
+  const existingComponent = await db.component.findUnique({
+    where: { id: componentId },
+  });
+  if (!existingComponent) {
+    return { error: "Component not found." };
+  }
+
+  const finalModel = model || existingComponent.model;
+  const finalSerial = serialNumber || existingComponent.serialNumber;
 
   const existingSerial = await db.component.findFirst({
     where: {
-      serialNumber,
+      serialNumber: finalSerial,
       NOT: { id: componentId },
     },
   });
 
   if (existingSerial) {
-    return { error: `Serial number "${serialNumber}" is already in use by another component.` };
+    return { error: `Serial number "${finalSerial}" is already in use by another component.` };
   }
 
   try {
@@ -150,10 +187,10 @@ export async function updateComponentAction(componentId: string, formData: FormD
       data: {
         type,
         brand,
-        model,
+        model: finalModel,
         capacity,
         specs,
-        serialNumber,
+        serialNumber: finalSerial,
         notes,
       },
     });
@@ -162,14 +199,14 @@ export async function updateComponentAction(componentId: string, formData: FormD
       action: AuditAction.COMPONENT_UPDATED,
       entityType: AuditEntityType.COMPONENT,
       entityId: componentId,
-      entityName: `${brand} ${model} (${serialNumber})`,
+      entityName: `${brand} ${finalModel} (${finalSerial})`,
       details: {
         type,
         brand,
-        model,
+        model: finalModel,
         capacity,
         specs,
-        serialNumber,
+        serialNumber: finalSerial,
       },
       actor: user,
     });
