@@ -20,6 +20,7 @@ import { DetachOrTransferModal } from "@/components/components/DetachOrTransferM
 import { InstallComponentModal } from "@/components/components/InstallComponentModal";
 import { ComponentModal } from "@/components/components/ComponentModal";
 import { ComponentTransferHistoryModal } from "@/components/components/ComponentTransferHistoryModal";
+import { ComponentIconBadge } from "@/components/ui/ComponentIcon";
 
 interface TransferRecord {
   id: string;
@@ -179,15 +180,7 @@ export function DeviceInstalledComponentsCard({
                 {/* Header row: Type badge & Actions */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
-                      {part.type === "RAM" ? (
-                        <Layers className="w-4 h-4" />
-                      ) : part.type.startsWith("STORAGE") ? (
-                        <HardDrive className="w-4 h-4" />
-                      ) : (
-                        <Cpu className="w-4 h-4" />
-                      )}
-                    </div>
+                    <ComponentIconBadge type={part.type} size="sm" />
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold text-foreground text-sm">

@@ -12,6 +12,7 @@ import {
   createComponentAction,
   updateComponentAction,
 } from "@/lib/actions/components";
+import { ComponentIconBadge } from "@/components/ui/ComponentIcon";
 
 interface DeviceOption {
   id: string;
@@ -169,9 +170,7 @@ export function ComponentModal({
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-              <Cpu className="w-5 h-5" />
-            </div>
+            <ComponentIconBadge type={type} size="lg" />
             <div>
               <h2 className="text-lg font-extrabold text-foreground">
                 {isEditing ? "Edit Component Specs" : "Register Hardware Component"}

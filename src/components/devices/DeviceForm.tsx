@@ -33,6 +33,7 @@ import {
 import { DeviceType, ComponentType } from "@prisma/client";
 import { createDeviceAction, updateDeviceAction } from "@/lib/actions/devices";
 import { computeDeviceLiveSpecs } from "@/lib/hardware";
+import { ComponentIconBadge, ComponentIcon } from "@/components/ui/ComponentIcon";
 
 export interface StagedComponent {
   id: string; // unique local ID for React key
@@ -602,6 +603,7 @@ export function DeviceForm({
                             className="p-3 rounded-xl bg-background/70 border border-border/80 flex items-center justify-between gap-3 hover:border-purple-500/30 transition-all"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
+                              <ComponentIconBadge type={part.type} size="xs" />
                               <span
                                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${typeDef.badge}`}
                               >
@@ -994,7 +996,13 @@ function InlineAddPartModal({ onClose, onAdd }: InlineAddPartModalProps) {
                   ComponentType.STORAGE_HDD,
                   ComponentType.GPU,
                   ComponentType.CPU,
+                  ComponentType.MOTHERBOARD,
                   ComponentType.POWER_SUPPLY,
+                  ComponentType.NETWORK_CARD,
+                  ComponentType.PERIPHERAL_MOUSE,
+                  ComponentType.PERIPHERAL_KEYBOARD,
+                  ComponentType.PERIPHERAL_MONITOR,
+                  ComponentType.CABLES_ADAPTERS,
                   ComponentType.OTHER,
                 ] as ComponentType[]
               ).map((t) => {
@@ -1005,13 +1013,14 @@ function InlineAddPartModal({ onClose, onAdd }: InlineAddPartModalProps) {
                     key={t}
                     type="button"
                     onClick={() => handleTypeChange(t)}
-                    className={`px-2 py-1.5 rounded-lg border text-center font-bold text-[11px] transition-all ${
+                    className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border text-center font-bold text-[11px] transition-all ${
                       isSelected
                         ? "bg-purple-600 text-white border-purple-600 shadow-sm"
                         : "bg-background text-muted-foreground border-border hover:bg-muted"
                     }`}
                   >
-                    {def.shortLabel}
+                    <ComponentIcon type={t} className="w-3.5 h-3.5 shrink-0" />
+                    <span>{def.shortLabel}</span>
                   </button>
                 );
               })}

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { COMPONENT_TYPES } from "@/lib/constants";
 import { computeDeviceLiveSpecs } from "@/lib/hardware";
+import { ComponentIconBadge } from "@/components/ui/ComponentIcon";
 
 interface EmployeeDetailPageProps {
   params: Promise<{ id: string }>;
@@ -190,17 +191,20 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                             key={part.id}
                             className="p-2.5 rounded-lg bg-background/80 border border-border/80 flex items-center justify-between gap-2"
                           >
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className={`px-1 py-0.2 rounded text-[9px] font-bold border ${typeDef.badge}`}>
-                                  {typeDef.shortLabel}
-                                </span>
-                                <span className="font-bold text-foreground text-xs truncate">
-                                  {part.brand} {part.model}
-                                </span>
-                              </div>
-                              <div className="text-[10px] text-muted-foreground mt-0.5">
-                                {part.capacity ? `${part.capacity} • ` : ""}{part.specs || ""}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <ComponentIconBadge type={part.type} size="xs" />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`px-1 py-0.2 rounded text-[9px] font-bold border ${typeDef.badge}`}>
+                                    {typeDef.shortLabel}
+                                  </span>
+                                  <span className="font-bold text-foreground text-xs truncate">
+                                    {part.brand} {part.model}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5">
+                                  {part.capacity ? `${part.capacity} • ` : ""}{part.specs || ""}
+                                </div>
                               </div>
                             </div>
                             <span className="font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/60 shrink-0">

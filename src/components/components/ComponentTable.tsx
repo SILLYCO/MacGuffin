@@ -33,6 +33,7 @@ import { ComponentModal } from "./ComponentModal";
 import { InstallComponentModal } from "./InstallComponentModal";
 import { DetachOrTransferModal } from "./DetachOrTransferModal";
 import { ComponentTransferHistoryModal } from "./ComponentTransferHistoryModal";
+import { ComponentIconBadge } from "@/components/ui/ComponentIcon";
 import { deleteComponentAction } from "@/lib/actions/components";
 
 interface TransferRecord {
@@ -393,15 +394,7 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                       {/* Component info */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
-                            {c.type === "RAM" ? (
-                              <Layers className="w-4.5 h-4.5" />
-                            ) : c.type.startsWith("STORAGE") ? (
-                              <HardDrive className="w-4.5 h-4.5" />
-                            ) : (
-                              <Cpu className="w-4.5 h-4.5" />
-                            )}
-                          </div>
+                          <ComponentIconBadge type={c.type} size="md" hoverScale />
                           <div>
                             <div className="flex items-center gap-2">
                               <Link
