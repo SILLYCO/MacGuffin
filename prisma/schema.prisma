@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -35,6 +36,10 @@ enum ComponentType {
   MOTHERBOARD
   POWER_SUPPLY
   NETWORK_CARD
+  PERIPHERAL_MOUSE
+  PERIPHERAL_KEYBOARD
+  PERIPHERAL_MONITOR
+  CABLES_ADAPTERS
   OTHER
 }
 
@@ -90,6 +95,9 @@ enum AuditAction {
   COMPONENT_DETACHED
   COMPONENT_TRANSFERRED
   COMPONENT_DELETED
+  PURCHASE_CREATED
+  PURCHASE_UPDATED
+  PURCHASE_DELETED
 }
 
 enum AuditEntityType {
@@ -99,6 +107,7 @@ enum AuditEntityType {
   ASSIGNMENT
   PRINTER
   COMPONENT
+  PURCHASE
 }
 
 model User {
@@ -271,6 +280,11 @@ model Component {
   deviceId     String?
   device       Device?         @relation(fields: [deviceId], references: [id], onDelete: SetNull)
 
+  // Optional procurement link
+  purchaseItemId String?
+  purchaseItem   PurchaseItem?   @relation(fields: [purchaseItemId], references: [id], onDelete: SetNull)
+  purchasePrice  Float?
+
   // Full chronological transfer trail
   transfers    ComponentTransfer[]
 
@@ -280,6 +294,7 @@ model Component {
   @@index([type])
   @@index([status])
   @@index([deviceId])
+  @@index([purchaseItemId])
 }
 
 model ComponentTransfer {
@@ -304,4 +319,61 @@ model ComponentTransfer {
   @@index([fromDeviceId])
   @@index([toDeviceId])
   @@index([transferredAt])
+}
+
+enum PurchaseCategory {
+  RAM
+  STORAGE_SSD
+  STORAGE_HDD
+  GPU
+  CPU
+  MOTHERBOARD
+  POWER_SUPPLY
+  NETWORK_CARD
+  PERIPHERAL_MOUSE
+  PERIPHERAL_KEYBOARD
+  PERIPHERAL_MONITOR
+  CABLES_ADAPTERS
+  STICKERS_COVERS
+  CONSUMABLE
+  OTHER
+}
+
+model Purchase {
+  id            String         @id @default(cuid())
+  title         String?        // Optional summary or label
+  vendor        String         // Store / Supplier name (e.g. Amazon EG, El Bostan Mall, B.TECH)
+  invoiceNumber String?        // Receipt / Invoice ref number
+  purchaseDate  DateTime       @default(now())
+  totalAmount   Float          // Calculated sum of all item line totals in EGP
+  currency      String         @default("EGP")
+  notes         String?
+  purchasedBy   String         // Email of the IT user who logged the purchase
+  items         PurchaseItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([purchaseDate])
+  @@index([vendor])
+}
+
+model PurchaseItem {
+  id          String           @id @default(cuid())
+  purchaseId  String
+  purchase    Purchase         @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  name        String           // e.g. "Kingston 16GB DDR4", "Arabic/English Keyboard Stickers"
+  category    PurchaseCategory @default(OTHER)
+  unitPrice   Float            // Price per unit in EGP
+  quantity    Int              @default(1)
+  totalPrice  Float            // unitPrice * quantity in EGP
+  isTracked   Boolean          @default(true) // false = expense proof only (e.g. stickers, thermal paste)
+  autoStocked Boolean          @default(false) // true if spare parts were generated into Components inventory
+  notes       String?
+  components  Component[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([purchaseId])
+  @@index([category])
+  @@index([isTracked])
 }
