@@ -1,5 +1,8 @@
 # Internal agent knowledge & skills
 .agents/
+.skills/
+skills/
+skills-lock.json
 
 # Environment and Secret Files
 .env
