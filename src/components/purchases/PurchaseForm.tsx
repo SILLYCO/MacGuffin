@@ -25,6 +25,7 @@ import {
   formatEGP,
 } from "@/lib/constants";
 import { createPurchaseAction, updatePurchaseAction } from "@/lib/actions/purchases";
+import { ComponentIconBadge } from "@/components/ui/ComponentIcon";
 
 interface FormLineItem {
   id: string;
@@ -395,6 +396,7 @@ export function PurchaseForm({ initialPurchase }: PurchaseFormProps) {
                       <span className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center font-mono text-xs font-bold text-muted-foreground">
                         #{index + 1}
                       </span>
+                      <ComponentIconBadge type={item.category} size="xs" />
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${
                           item.isTracked

@@ -37,6 +37,7 @@ import {
 import { deleteComponentAction } from "@/lib/actions/components";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { computeDeviceLiveSpecs } from "@/lib/hardware";
+import { ComponentIconBadge, ComponentIcon } from "@/components/ui/ComponentIcon";
 import { ComponentModal } from "./ComponentModal";
 import { InstallComponentModal } from "./InstallComponentModal";
 import { DetachOrTransferModal } from "./DetachOrTransferModal";
@@ -208,28 +209,30 @@ export function ComponentDetailView({ component, devices, userRole }: ComponentD
       {/* Hero Header Card */}
       <div className="glass-card p-6 md:p-8 space-y-6 relative overflow-hidden border-border/80">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span
-                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${typeMeta.badge}`}
-              >
-                {typeMeta.label}
-              </span>
-              <span
-                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${statusMeta.border} ${statusMeta.bg} ${statusMeta.text}`}
-              >
-                {statusMeta.label}
-              </span>
-              {component.capacity && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
-                  {component.capacity}
+          <div className="flex items-start gap-4">
+            <ComponentIconBadge type={component.type} size="xl" className="mt-1 shadow-lg shrink-0" />
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${typeMeta.badge}`}
+                >
+                  {typeMeta.label}
                 </span>
-              )}
-            </div>
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${statusMeta.border} ${statusMeta.bg} ${statusMeta.text}`}
+                >
+                  {statusMeta.label}
+                </span>
+                {component.capacity && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                    {component.capacity}
+                  </span>
+                )}
+              </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
-              {component.brand} {component.model}
-            </h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+                {component.brand} {component.model}
+              </h1>
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <button
@@ -247,6 +250,7 @@ export function ComponentDetailView({ component, devices, userRole }: ComponentD
               </span>
             </div>
           </div>
+        </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3">
@@ -468,9 +472,7 @@ export function ComponentDetailView({ component, devices, userRole }: ComponentD
           <div className="glass-card p-6 space-y-5 border-border/80">
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                  <Cpu className="w-4 h-4" />
-                </div>
+                <ComponentIconBadge type={component.type} size="sm" />
                 <div>
                   <h2 className="text-base font-extrabold text-foreground">Hardware Specifications</h2>
                   <p className="text-xs text-muted-foreground">Detailed technical parameters and metadata</p>
@@ -482,6 +484,7 @@ export function ComponentDetailView({ component, devices, userRole }: ComponentD
               <div className="p-3.5 rounded-xl bg-card border border-border/60 space-y-1">
                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Category / Type</span>
                 <div className="font-extrabold text-foreground text-sm flex items-center gap-2">
+                  <ComponentIcon type={component.type} className="w-4 h-4 text-primary shrink-0" />
                   <span>{typeMeta.label}</span>
                 </div>
               </div>

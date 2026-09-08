@@ -25,6 +25,7 @@ import {
   formatEGP,
 } from "@/lib/constants";
 import { deletePurchaseAction, stockPurchaseItemAction } from "@/lib/actions/purchases";
+import { ComponentIcon } from "@/components/ui/ComponentIcon";
 
 interface ComponentRecord {
   id: string;
@@ -302,10 +303,11 @@ export function PurchaseDetailView({ purchase, userRole }: PurchaseDetailProps) 
                               {item.components.map((c) => (
                                 <Link
                                   key={c.id}
-                                  href={`/components`}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-mono text-[10px] font-bold border border-purple-500/20 transition-colors"
+                                  href={`/components/${c.id}`}
+                                  className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-mono text-[10px] font-bold border border-purple-500/20 transition-colors"
                                   title={`View ${c.serialNumber} in Components`}
                                 >
+                                  <ComponentIcon type={item.category} className="w-3 h-3" />
                                   <span>{c.serialNumber}</span>
                                   <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                                 </Link>
@@ -338,8 +340,9 @@ export function PurchaseDetailView({ purchase, userRole }: PurchaseDetailProps) 
 
                       {/* Category */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${catDef.badge}`}>
-                          {catDef.shortLabel}
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border ${catDef.badge}`}>
+                          <ComponentIcon type={item.category} className="w-3.5 h-3.5" />
+                          <span>{catDef.shortLabel}</span>
                         </span>
                       </td>
 
