@@ -223,6 +223,30 @@ export const COMPONENT_TYPES = {
     category: "Network",
     badge: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/25",
   },
+  PERIPHERAL_MOUSE: {
+    label: "Mouse (USB / Wireless)",
+    shortLabel: "Mouse",
+    category: "Peripheral",
+    badge: "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/25",
+  },
+  PERIPHERAL_KEYBOARD: {
+    label: "Keyboard (USB / Wireless)",
+    shortLabel: "Keyboard",
+    category: "Peripheral",
+    badge: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/25",
+  },
+  PERIPHERAL_MONITOR: {
+    label: "Monitor / External Display",
+    shortLabel: "Monitor",
+    category: "Display",
+    badge: "bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/25",
+  },
+  CABLES_ADAPTERS: {
+    label: "Cables & Adapters",
+    shortLabel: "Cables",
+    category: "Accessory",
+    badge: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/25",
+  },
   OTHER: {
     label: "Other Swappable Part",
     shortLabel: "Other",
@@ -281,5 +305,143 @@ export const COMPONENT_BRAND_OPTIONS = [
   "Noctua",
   "TP-Link",
 ] as const;
+
+export const PURCHASE_CATEGORY_DEFINITIONS: Record<
+  string,
+  {
+    label: string;
+    shortLabel: string;
+    badge: string;
+    defaultTracked: boolean;
+    componentTypeMapping?: string;
+  }
+> = {
+  RAM: {
+    label: "RAM / Memory",
+    shortLabel: "RAM",
+    badge: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "RAM",
+  },
+  STORAGE_SSD: {
+    label: "SSD Storage",
+    shortLabel: "SSD",
+    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "STORAGE_SSD",
+  },
+  STORAGE_HDD: {
+    label: "HDD Hard Drive",
+    shortLabel: "HDD",
+    badge: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "STORAGE_HDD",
+  },
+  GPU: {
+    label: "Graphics Card (GPU)",
+    shortLabel: "GPU",
+    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "GPU",
+  },
+  CPU: {
+    label: "Processor (CPU)",
+    shortLabel: "CPU",
+    badge: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "CPU",
+  },
+  MOTHERBOARD: {
+    label: "Motherboard",
+    shortLabel: "Mobo",
+    badge: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "MOTHERBOARD",
+  },
+  POWER_SUPPLY: {
+    label: "Power Supply (PSU)",
+    shortLabel: "PSU",
+    badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "POWER_SUPPLY",
+  },
+  NETWORK_CARD: {
+    label: "Network Adapter (Wi-Fi / 10GbE)",
+    shortLabel: "NIC",
+    badge: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "NETWORK_CARD",
+  },
+  PERIPHERAL_MOUSE: {
+    label: "Mouse",
+    shortLabel: "Mouse",
+    badge: "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "PERIPHERAL_MOUSE",
+  },
+  PERIPHERAL_KEYBOARD: {
+    label: "Keyboard",
+    shortLabel: "Keyboard",
+    badge: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "PERIPHERAL_KEYBOARD",
+  },
+  PERIPHERAL_MONITOR: {
+    label: "Monitor / Display",
+    shortLabel: "Monitor",
+    badge: "bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/20",
+    defaultTracked: true,
+    componentTypeMapping: "PERIPHERAL_MONITOR",
+  },
+  CABLES_ADAPTERS: {
+    label: "Cables & Adapters",
+    shortLabel: "Cables",
+    badge: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/20",
+    defaultTracked: false,
+    componentTypeMapping: "CABLES_ADAPTERS",
+  },
+  STICKERS_COVERS: {
+    label: "Keyboard Stickers & Covers",
+    shortLabel: "Stickers",
+    badge: "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20",
+    defaultTracked: false,
+  },
+  CONSUMABLE: {
+    label: "Consumable / Supplies (Paste, Spray, Ties)",
+    shortLabel: "Consumable",
+    badge: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
+    defaultTracked: false,
+  },
+  OTHER: {
+    label: "Other Custom Item",
+    shortLabel: "Other",
+    badge: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+    defaultTracked: false,
+    componentTypeMapping: "OTHER",
+  },
+};
+
+export function formatEGP(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || isNaN(amount)) return "0.00 EGP";
+  return (
+    new Intl.NumberFormat("en-EG", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount) + " EGP"
+  );
+}
+
+export const COMMON_VENDOR_SUGGESTIONS = [
+  "Amazon EG",
+  "El Bostan Mall",
+  "B.TECH",
+  "Noon Egypt",
+  "2B Egypt",
+  "Raya Shop",
+  "Compuscience",
+  "Local Hardware Store",
+  "Direct Distributor",
+] as const;
+
 
 

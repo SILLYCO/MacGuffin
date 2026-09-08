@@ -45,11 +45,43 @@ export async function createComponentAction(formData: FormData) {
       ? "Hard Disk Drive"
       : type === "GPU"
       ? "Graphics Card"
+      : type === "CPU"
+      ? "Processor"
+      : type === "MOTHERBOARD"
+      ? "Mainboard"
+      : type === "POWER_SUPPLY"
+      ? "Power Supply"
+      : type === "NETWORK_CARD"
+      ? "Network Adapter"
+      : type === "PERIPHERAL_MOUSE"
+      ? "Optical Mouse"
+      : type === "PERIPHERAL_KEYBOARD"
+      ? "Standard Keyboard"
+      : type === "PERIPHERAL_MONITOR"
+      ? "Display Monitor"
+      : type === "CABLES_ADAPTERS"
+      ? "Cable / Adapter"
       : "Standard Module");
+
+  const prefixMap: Record<string, string> = {
+    RAM: "RAM",
+    STORAGE_SSD: "SSD",
+    STORAGE_HDD: "HDD",
+    GPU: "GPU",
+    CPU: "CPU",
+    MOTHERBOARD: "MOB",
+    POWER_SUPPLY: "PSU",
+    NETWORK_CARD: "NIC",
+    PERIPHERAL_MOUSE: "MOU",
+    PERIPHERAL_KEYBOARD: "KBD",
+    PERIPHERAL_MONITOR: "MON",
+    CABLES_ADAPTERS: "CBL",
+  };
+  const prefix = prefixMap[type] || "CMP";
 
   const finalSerial =
     serialNumber ||
-    `GEN-${type.substring(0, 3)}-${Date.now().toString(36).toUpperCase()}-${Math.random()
+    `GEN-${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random()
       .toString(36)
       .substring(2, 6)
       .toUpperCase()}`;
@@ -251,11 +283,17 @@ export async function deleteComponentAction(componentId: string) {
       details: {
         type: component.type,
         serialNumber: component.serialNumber,
+        wasInstalledInDeviceId: deviceId,
       },
-      actor: user,
+      actor: {
+        id: user.id,
+        email: user.email,
+        role: user.role as any,
+      },
     });
 
     revalidatePath("/components");
+    revalidatePath(`/components/${componentId}`);
     if (deviceId) {
       revalidatePath(`/devices/${deviceId}`);
     }

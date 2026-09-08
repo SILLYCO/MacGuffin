@@ -7,6 +7,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   Laptop,
+  Monitor,
+  Server,
   Printer,
   Cpu,
   Users,
@@ -19,8 +21,11 @@ import {
   Sparkles,
   ChevronRight,
   TrendingUp,
+  Receipt,
 } from "lucide-react";
 import { DeviceStatus, DeviceType, PrinterStatus, ComponentStatus } from "@prisma/client";
+import { formatEGP } from "@/lib/constants";
+import { computeDeviceLiveSpecs } from "@/lib/hardware";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -29,7 +34,7 @@ export default async function DashboardPage() {
   }
 
   // Fetch summary counts with efficient aggregation
-  const [deviceStats, deviceTypeStats, printerStats, componentStats, totalEmployees, recentDevices] = await Promise.all([
+  const [deviceStats, deviceTypeStats, printerStats, componentStats, totalEmployees, purchaseStats, recentDevices] = await Promise.all([
     db.device.groupBy({
       by: ["status"],
       _count: { status: true },
@@ -47,6 +52,10 @@ export default async function DashboardPage() {
       _count: { status: true },
     }),
     db.employee.count(),
+    db.purchase.aggregate({
+      _sum: { totalAmount: true },
+      _count: { id: true },
+    }),
     db.device.findMany({
       take: 6,
       orderBy: { createdAt: "desc" },
@@ -56,7 +65,7 @@ export default async function DashboardPage() {
           include: { employee: true },
         },
         components: {
-          select: { id: true, type: true, brand: true, model: true },
+          select: { id: true, type: true, brand: true, model: true, capacity: true, specs: true },
         },
       },
     }),
@@ -100,6 +109,9 @@ export default async function DashboardPage() {
     totalComponents += stat._count.status;
   }
 
+  const totalPurchaseSpend = purchaseStats._sum.totalAmount ?? 0;
+  const totalPurchasesCount = purchaseStats._count.id ?? 0;
+
   const inStockCount = statusCounts.IN_STOCK;
   const assignedCount = statusCounts.ASSIGNED;
   const inRepairCount = statusCounts.IN_REPAIR;
@@ -138,6 +150,13 @@ export default async function DashboardPage() {
                   >
                     <Laptop className="w-4 h-4" />
                     + Register Device
+                  </Link>
+                  <Link
+                    href="/purchases/new"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border text-foreground font-bold text-sm shadow-sm hover:bg-muted transition-all"
+                  >
+                    <Receipt className="w-4 h-4 text-emerald-500" />
+                    + Record Purchase
                   </Link>
                   <Link
                     href="/components"
@@ -241,8 +260,8 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          {/* Row 2: Components & Peripheral Infrastructure */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Row 2: Components, Purchases & Infrastructure */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Spare Hardware Components */}
             <Link href="/components" className="glass-card-interactive p-5 space-y-3 border-purple-500/30 group">
               <div className="flex items-center justify-between">
@@ -279,6 +298,26 @@ export default async function DashboardPage() {
               </div>
             </Link>
 
+            {/* IT Purchases & Expenses */}
+            <Link href="/purchases" className="glass-card-interactive p-5 space-y-3 border-emerald-500/30 group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
+                  IT Purchases & Expenses
+                </span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm glow-pill-emerald">
+                  <Receipt className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-foreground tracking-tight truncate">
+                  {formatEGP(totalPurchaseSpend)}
+                </div>
+                <p className="text-[11px] font-semibold text-emerald-400/80 mt-1 flex items-center gap-1">
+                  {totalPurchasesCount} orders recorded
+                </p>
+              </div>
+            </Link>
+
             {/* Total Employees */}
             <Link href="/employees" className="glass-card-interactive p-5 space-y-3 group">
               <div className="flex items-center justify-between">
@@ -308,7 +347,7 @@ export default async function DashboardPage() {
                 Recent Hardware Stream
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Latest laptops added to company inventory and their active assignments
+                Latest computers & hardware added to company inventory and their active assignments
               </p>
             </div>
             <Link
@@ -323,6 +362,13 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentDevices.map((device) => {
               const activeEmp = device.assignments[0]?.employee;
+              const isDesktop = device.deviceType === DeviceType.DESKTOP_PC;
+              const isWorkstation = device.deviceType === DeviceType.WORKSTATION || device.deviceType === DeviceType.SERVER;
+              const liveSpecs = computeDeviceLiveSpecs(device);
+
+              const hasRam = liveSpecs.ramSummary && liveSpecs.ramSummary !== "Modular / None";
+              const hasStorage = liveSpecs.storageSummary && liveSpecs.storageSummary !== "Modular / None";
+
               return (
                 <div
                   key={device.id}
@@ -330,8 +376,22 @@ export default async function DashboardPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <Laptop className="w-5 h-5" />
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          isDesktop
+                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                            : isWorkstation
+                            ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                            : "bg-primary/10 text-primary"
+                        }`}
+                      >
+                        {isDesktop ? (
+                          <Monitor className="w-5 h-5" />
+                        ) : isWorkstation ? (
+                          <Server className="w-5 h-5" />
+                        ) : (
+                          <Laptop className="w-5 h-5" />
+                        )}
                       </div>
                       <div>
                         <Link
@@ -350,11 +410,23 @@ export default async function DashboardPage() {
                   <div className="text-xs text-muted-foreground p-2.5 rounded-xl bg-muted/30 border border-border/50 space-y-1">
                     <div className="flex justify-between">
                       <span>CPU:</span>
-                      <strong className="text-foreground">{device.cpu}</strong>
+                      <strong className="text-foreground">{device.cpu || "N/A"}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span>RAM / Storage:</span>
-                      <strong className="text-foreground">{device.ram} • {device.storage}</strong>
+                      <strong className="text-foreground">
+                        {hasRam && hasStorage ? (
+                          <span>
+                            {liveSpecs.ramSummary} <span className="text-muted-foreground/60 font-normal mx-0.5">•</span> {liveSpecs.storageSummary}
+                          </span>
+                        ) : hasRam ? (
+                          <span>{liveSpecs.ramSummary}</span>
+                        ) : hasStorage ? (
+                          <span>{liveSpecs.storageSummary}</span>
+                        ) : (
+                          <span className="text-muted-foreground font-normal italic">Modular / None</span>
+                        )}
+                      </strong>
                     </div>
                   </div>
 

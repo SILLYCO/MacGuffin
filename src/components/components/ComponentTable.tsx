@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Plus,
@@ -21,6 +22,7 @@ import {
   Laptop,
   User,
   X,
+  Eye,
 } from "lucide-react";
 import { ComponentType, ComponentStatus, ComponentTransferAction } from "@prisma/client";
 import {
@@ -87,11 +89,18 @@ interface ComponentTableProps {
 }
 
 export function ComponentTable({ components, devices, userRole }: ComponentTableProps) {
+  const [localComponents, setLocalComponents] = useState<ComponentItem[]>(components);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
+  const router = useRouter();
   const isIT = userRole === "IT";
+
+  // Sync state if server revalidates props
+  useEffect(() => {
+    setLocalComponents(components);
+  }, [components]);
 
   // Modals state
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -108,22 +117,28 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
       return;
     }
     setDeletingId(id);
-    await deleteComponentAction(id);
+    const res = await deleteComponentAction(id);
     setDeletingId(null);
+    if (res?.error) {
+      alert(`Could not delete component: ${res.error}`);
+    } else {
+      setLocalComponents((prev) => prev.filter((c) => c.id !== id));
+      router.refresh();
+    }
   };
 
   // Metrics counts
-  const totalCount = components.length;
-  const inStockCount = components.filter((c) => c.status === "IN_STOCK").length;
-  const installedCount = components.filter((c) => c.status === "INSTALLED").length;
-  const defectiveCount = components.filter((c) => c.status === "DEFECTIVE").length;
+  const totalCount = localComponents.length;
+  const inStockCount = localComponents.filter((c) => c.status === "IN_STOCK").length;
+  const installedCount = localComponents.filter((c) => c.status === "INSTALLED").length;
+  const defectiveCount = localComponents.filter((c) => c.status === "DEFECTIVE").length;
 
-  const ramCount = components.filter((c) => c.type === "RAM").length;
-  const ssdCount = components.filter((c) => c.type === "STORAGE_SSD").length;
-  const gpuCount = components.filter((c) => c.type === "GPU").length;
+  const ramCount = localComponents.filter((c) => c.type === "RAM").length;
+  const ssdCount = localComponents.filter((c) => c.type === "STORAGE_SSD").length;
+  const gpuCount = localComponents.filter((c) => c.type === "GPU").length;
 
   // Filter components
-  const filteredComponents = components.filter((c) => {
+  const filteredComponents = localComponents.filter((c) => {
     const searchLower = search.toLowerCase();
     const mountedDev = c.device ? `${c.device.brand} ${c.device.model} ${c.device.serialNumber}`.toLowerCase() : "";
     const assignedEmp = c.device?.assignments?.[0]?.employee;
@@ -389,9 +404,12 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-foreground text-sm">
+                              <Link
+                                href={`/components/${c.id}`}
+                                className="font-bold text-foreground text-sm hover:text-primary transition-colors hover:underline"
+                              >
                                 {c.brand} {c.model}
-                              </span>
+                              </Link>
                               <span
                                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${typeDef.badge}`}
                               >
@@ -508,6 +526,15 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
                             </button>
                           )}
 
+                          {/* View Details Screen */}
+                          <Link
+                            href={`/components/${c.id}`}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors shrink-0"
+                            title="View component details & assignment"
+                          >
+                            <Eye className="w-4 h-4 shrink-0" />
+                          </Link>
+
                           {/* Audit History Trail */}
                           <button
                             type="button"
@@ -553,7 +580,7 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
         <div className="p-4 border-t border-border/60 bg-muted/20 text-xs font-semibold text-muted-foreground flex justify-between items-center">
           <span>
             Showing <strong className="text-foreground">{filteredComponents.length}</strong> of{" "}
-            <strong className="text-foreground">{components.length}</strong> hardware components
+            <strong className="text-foreground">{localComponents.length}</strong> hardware components
           </span>
         </div>
       </div>
