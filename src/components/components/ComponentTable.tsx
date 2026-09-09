@@ -34,6 +34,7 @@ import { InstallComponentModal } from "./InstallComponentModal";
 import { DetachOrTransferModal } from "./DetachOrTransferModal";
 import { ComponentTransferHistoryModal } from "./ComponentTransferHistoryModal";
 import { ComponentIconBadge } from "@/components/ui/ComponentIcon";
+import { ExportExcelButton } from "@/components/ui/ExportExcelButton";
 import { deleteComponentAction } from "@/lib/actions/components";
 
 interface TransferRecord {
@@ -173,16 +174,19 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
           </p>
         </div>
 
-        {isIT && (
-          <button
-            type="button"
-            onClick={() => setIsNewModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Stock New Component
-          </button>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          <ExportExcelButton scope="components" label="Export (.xlsx)" />
+          {isIT && (
+            <button
+              type="button"
+              onClick={() => setIsNewModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Stock New Component
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Mini Stats Banner */}

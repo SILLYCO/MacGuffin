@@ -3,6 +3,7 @@
 import React from "react";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import { Activity } from "lucide-react";
+import { ExportExcelButton } from "@/components/ui/ExportExcelButton";
 
 interface NavbarProps {
   user: {
@@ -24,7 +25,8 @@ export function Navbar({ user }: NavbarProps) {
         </span>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <ExportExcelButton scope="all" label="Export (.xlsx)" size="sm" />
         <RoleBadge role={user.role} />
         <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary/20 to-indigo-500/20 border border-primary/30 text-primary flex items-center justify-center font-extrabold text-xs shadow-sm">
           {user.email.substring(0, 2).toUpperCase()}

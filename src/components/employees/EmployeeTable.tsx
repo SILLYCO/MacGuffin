@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Search, Plus, Filter, Users, Eye, Laptop, ChevronRight } from "lucide-react";
 import { DEPARTMENT_OPTIONS } from "@/lib/constants";
+import { ExportExcelButton } from "@/components/ui/ExportExcelButton";
 
 interface EmployeeItem {
   id: string;
@@ -60,15 +61,18 @@ export function EmployeeTable({ employees, userRole }: EmployeeTableProps) {
           </p>
         </div>
 
-        {isIT && (
-          <Link
-            href="/employees/new"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm shadow-sm hover:bg-primary/90 transition-colors shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Add New Employee
-          </Link>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          <ExportExcelButton scope="employees" label="Export (.xlsx)" />
+          {isIT && (
+            <Link
+              href="/employees/new"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm shadow-sm hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Employee
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

@@ -26,6 +26,7 @@ import {
   formatEGP,
 } from "@/lib/constants";
 import { deletePurchaseAction } from "@/lib/actions/purchases";
+import { ExportExcelButton } from "@/components/ui/ExportExcelButton";
 
 interface PurchaseItemData {
   id: string;
@@ -139,15 +140,18 @@ export function PurchaseTable({ purchases, userRole }: PurchaseTableProps) {
           </p>
         </div>
 
-        {isIT && (
-          <Link
-            href="/purchases/new"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Log New Purchase</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          <ExportExcelButton scope="purchases" label="Export (.xlsx)" />
+          {isIT && (
+            <Link
+              href="/purchases/new"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Log New Purchase</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Financial Overview Cards */}
