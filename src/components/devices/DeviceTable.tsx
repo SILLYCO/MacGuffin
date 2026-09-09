@@ -20,6 +20,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DEVICE_STATUS_LABELS, BRAND_OPTIONS, DEVICE_TYPES } from "@/lib/constants";
 import { DeviceType } from "@prisma/client";
 import { computeDeviceLiveSpecs } from "@/lib/hardware";
+import { ExportExcelButton } from "@/components/ui/ExportExcelButton";
 
 interface DeviceItem {
   id: string;
@@ -110,15 +111,18 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
           </p>
         </div>
 
-        {isIT && (
-          <Link
-            href="/devices/new"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Add New Computer
-          </Link>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          <ExportExcelButton scope="devices" label="Export (.xlsx)" />
+          {isIT && (
+            <Link
+              href="/devices/new"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Computer
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

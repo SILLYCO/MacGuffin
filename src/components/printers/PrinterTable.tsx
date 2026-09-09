@@ -30,6 +30,7 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PRINTER_BRAND_OPTIONS, PRINTER_STATUS_LABELS, PRINTER_CONNECTION_TYPES } from "@/lib/constants";
 import { PrinterStatus, PrinterConnectionType } from "@prisma/client";
+import { ExportExcelButton } from "@/components/ui/ExportExcelButton";
 
 interface PrinterItem {
   id: string;
@@ -147,15 +148,18 @@ export function PrinterTable({ printers, userRole }: PrinterTableProps) {
           </p>
         </div>
 
-        {isIT && (
-          <Link
-            href="/printers/new"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Register New Printer
-          </Link>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          <ExportExcelButton scope="printers" label="Export (.xlsx)" />
+          {isIT && (
+            <Link
+              href="/printers/new"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Register New Printer
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

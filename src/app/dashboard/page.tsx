@@ -26,6 +26,7 @@ import {
 import { DeviceStatus, DeviceType, PrinterStatus, ComponentStatus } from "@prisma/client";
 import { formatEGP } from "@/lib/constants";
 import { computeDeviceLiveSpecs } from "@/lib/hardware";
+import { ExportExcelButton } from "@/components/ui/ExportExcelButton";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -124,26 +125,28 @@ export default async function DashboardPage() {
     <AppShell user={session.user}>
       <div className="space-y-8 pb-8">
         {/* Banner / Welcome Header */}
-        <div className="relative overflow-hidden glass-card p-8 border-primary/30 bg-gradient-to-r from-card via-card to-primary/10">
+        <div className="relative overflow-hidden glass-card p-6 sm:p-8 lg:p-9 border-primary/25 bg-gradient-to-r from-card via-card to-primary/10 shadow-lg">
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -z-10 pointer-events-none" />
           
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-            <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                IT Asset Command Center
+          <div className="flex flex-col gap-6 relative z-10">
+            {/* Top Tier: Title, Subtitle, & Primary Actions */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>IT Asset Command Center</span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-tight">
+                  Hardware Inventory Overview
+                </h1>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
+                  Real-time metrics, equipment allocations, and lifecycle status across all company computers, modular components, and staff.
+                </p>
               </div>
-              <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
-                Hardware Inventory Overview
-              </h1>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Real-time metrics, device allocation rates, and lifecycle status across all company laptops, desktop PCs, components, and employees.
-              </p>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              {session.user.role === "IT" ? (
-                <>
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <ExportExcelButton scope="all" label="Export Full System (.xlsx)" variant="emerald" />
+                {session.user.role === "IT" ? (
                   <Link
                     href="/devices/new"
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
@@ -151,35 +154,44 @@ export default async function DashboardPage() {
                     <Laptop className="w-4 h-4" />
                     + Register Device
                   </Link>
-                  <Link
-                    href="/purchases/new"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border text-foreground font-bold text-sm shadow-sm hover:bg-muted transition-all"
-                  >
-                    <Receipt className="w-4 h-4 text-emerald-500" />
-                    + Record Purchase
-                  </Link>
-                  <Link
-                    href="/components"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border text-foreground font-bold text-sm shadow-sm hover:bg-muted transition-all"
-                  >
-                    <Cpu className="w-4 h-4 text-purple-500" />
-                    + Stock Component
-                  </Link>
-                  <Link
-                    href="/printers/new"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border text-foreground font-bold text-sm shadow-sm hover:bg-muted transition-all"
-                  >
-                    <Printer className="w-4 h-4 text-primary" />
-                    + Register Printer
-                  </Link>
-                </>
-              ) : (
-                <div className="px-4 py-2.5 rounded-xl bg-muted/60 border border-border text-xs font-semibold text-muted-foreground flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-purple-400" />
-                  <span>Read-Only Manager View</span>
-                </div>
-              )}
+                ) : (
+                  <div className="px-4 py-2.5 rounded-xl bg-muted/60 border border-border text-xs font-semibold text-muted-foreground flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-purple-400" />
+                    <span>Read-Only Manager View</span>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Bottom Tier: Contextual Quick Actions (IT Role only) */}
+            {session.user.role === "IT" && (
+              <div className="flex flex-wrap items-center gap-2.5 pt-4 border-t border-border/50 text-xs">
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mr-1">
+                  Quick Actions:
+                </span>
+                <Link
+                  href="/purchases/new"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/60 hover:bg-muted border border-border/70 hover:border-emerald-500/40 text-foreground font-medium transition-all shadow-xs"
+                >
+                  <Receipt className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>+ Record Purchase</span>
+                </Link>
+                <Link
+                  href="/components"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/60 hover:bg-muted border border-border/70 hover:border-purple-500/40 text-foreground font-medium transition-all shadow-xs"
+                >
+                  <Cpu className="w-3.5 h-3.5 text-purple-500" />
+                  <span>+ Stock Component</span>
+                </Link>
+                <Link
+                  href="/printers/new"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/60 hover:bg-muted border border-border/70 hover:border-blue-500/40 text-foreground font-medium transition-all shadow-xs"
+                >
+                  <Printer className="w-3.5 h-3.5 text-blue-500" />
+                  <span>+ Register Printer</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
