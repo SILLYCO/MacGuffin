@@ -9,7 +9,9 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "prisma:generate": "prisma generate",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "backup:db": "tsx scripts/backup-database.ts",
+    "restore:db": "tsx scripts/restore-database.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
