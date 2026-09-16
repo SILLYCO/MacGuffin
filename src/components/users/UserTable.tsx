@@ -89,22 +89,22 @@ export function UserTable({ users, employees, currentUserId }: UserTableProps) {
   const unlinkedEmployees = employees.filter((emp) => !emp.user);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6 pb-8">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">System Users & Roles</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">System Users & Roles</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Manage IT Administrator and Manager login accounts (IT-Only Settings)
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/20 hover:bg-primary/90 transition-all"
+          className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all self-start sm:self-auto shrink-0"
         >
           <UserPlus className="w-4 h-4" />
-          Add New User Account
+          <span>Add New User Account</span>
         </button>
       </div>
 
@@ -146,40 +146,32 @@ export function UserTable({ users, employees, currentUserId }: UserTableProps) {
                     <td className="px-6 py-4">
                       <RoleBadge role={u.role} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-muted-foreground">
                       {u.employee ? (
-                        <div>
-                          <div className="font-semibold text-foreground">{u.employee.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {u.employee.department}
-                          </div>
-                        </div>
+                        <span className="font-medium text-foreground">
+                          {u.employee.name} ({u.employee.department})
+                        </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">Unlinked</span>
+                        <span className="text-xs italic text-muted-foreground/70">Unlinked</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs text-muted-foreground">
-                      {new Date(u.createdAt).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {new Date(u.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setSelectedUserForReset(u)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-card border border-border text-foreground hover:bg-muted transition-colors shadow-sm"
-                          title="Reset User Password"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          title="Reset Password"
                         >
-                          <KeyRound className="w-3.5 h-3.5 text-primary" />
-                          <span>Reset Password</span>
+                          <KeyRound className="w-4 h-4 text-primary" />
                         </button>
                         {!isSelf && (
                           <button
                             onClick={() => handleDeleteUser(u.id, u.email)}
-                            className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
-                            title="Delete User Account"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="Delete User"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -194,7 +186,7 @@ export function UserTable({ users, employees, currentUserId }: UserTableProps) {
         </div>
       </div>
 
-      {/* Reset Password Modal */}
+      {/* Password Reset Modal */}
       {selectedUserForReset && (
         <ResetPasswordModal
           user={selectedUserForReset}
@@ -205,9 +197,9 @@ export function UserTable({ users, employees, currentUserId }: UserTableProps) {
 
       {/* Add User Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden">
-            <div className="p-5 border-b border-border flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2 text-foreground font-bold">
                 <UserPlus className="w-5 h-5 text-primary" />
                 <span>Create New User Account</span>
@@ -220,7 +212,7 @@ export function UserTable({ users, employees, currentUserId }: UserTableProps) {
               </button>
             </div>
 
-            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+            <form onSubmit={handleCreateUser} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
               {error && (
                 <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />

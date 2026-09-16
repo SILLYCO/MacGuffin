@@ -89,14 +89,14 @@ export default async function PrinterDetailPage({ params }: PrinterDetailPagePro
         </div>
 
         {/* Top Header Card */}
-        <div className="glass-card p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-primary/20">
-          <div className="flex items-start md:items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary flex items-center justify-center font-bold shrink-0 shadow-inner border border-primary/20">
-              <Printer className="w-8 h-8" />
+        <div className="glass-card p-4 sm:p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 border-primary/20">
+          <div className="flex items-start md:items-center gap-3.5 sm:gap-4">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary flex items-center justify-center font-bold shrink-0 shadow-inner border border-primary/20">
+              <Printer className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
                   {printer.brand} {printer.model}
                 </h1>
                 <StatusBadge status={printer.status} />

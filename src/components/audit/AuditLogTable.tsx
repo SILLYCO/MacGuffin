@@ -190,7 +190,7 @@ export function AuditLogTable({ logs, userRole }: AuditLogTableProps) {
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-5 sm:space-y-6 pb-8">
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -198,24 +198,24 @@ export function AuditLogTable({ logs, userRole }: AuditLogTableProps) {
             <ScrollText className="w-3.5 h-3.5" />
             Security & Governance
           </div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">System Audit Log</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">System Audit Log</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Immutable, chronological audit trail of all hardware modifications, staff allocations, and user accounts
           </p>
         </div>
 
         <button
           onClick={exportToCSV}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border hover:border-primary/40 hover:bg-muted/80 text-foreground font-bold text-xs shadow-sm transition-all shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-card border border-border hover:border-primary/40 hover:bg-muted/80 text-foreground font-bold text-xs shadow-sm transition-all self-start sm:self-auto shrink-0"
         >
           <Download className="w-4 h-4 text-primary" />
-          Export Audit Trail (CSV)
+          <span>Export Audit Trail (CSV)</span>
         </button>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-card p-5 space-y-4">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div className="glass-card p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 sm:gap-4">
           <div className="relative w-full lg:w-96">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -223,11 +223,11 @@ export function AuditLogTable({ logs, userRole }: AuditLogTableProps) {
               placeholder="Search by actor, entity name, action, or metadata..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
             <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
               <Filter className="w-3.5 h-3.5 text-primary" />
               Filters:
@@ -236,7 +236,7 @@ export function AuditLogTable({ logs, userRole }: AuditLogTableProps) {
             <select
               value={entityFilter}
               onChange={(e) => setEntityFilter(e.target.value)}
-              className="px-3.5 py-2.5 text-xs bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-medium"
+              className="flex-1 sm:flex-initial px-3 py-2 text-xs bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-medium"
             >
               <option value="ALL">All Entity Types</option>
               <option value="DEVICE">Devices (Laptops)</option>
@@ -248,7 +248,7 @@ export function AuditLogTable({ logs, userRole }: AuditLogTableProps) {
             <select
               value={actionCategory}
               onChange={(e) => setActionCategory(e.target.value)}
-              className="px-3.5 py-2.5 text-xs bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-medium"
+              className="flex-1 sm:flex-initial px-3 py-2 text-xs bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-medium"
             >
               <option value="ALL">All Action Types</option>
               <option value="CREATE">Creations</option>
@@ -261,7 +261,7 @@ export function AuditLogTable({ logs, userRole }: AuditLogTableProps) {
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="px-3.5 py-2.5 text-xs bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-medium"
+              className="flex-1 sm:flex-initial px-3 py-2 text-xs bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring font-medium"
             >
               <option value="ALL">All Time</option>
               <option value="24H">Last 24 Hours</option>

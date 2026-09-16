@@ -79,9 +79,9 @@ export function DetachOrTransferModal({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
-      <div className="relative w-full max-w-lg glass-card border-border shadow-2xl p-6 space-y-5 z-10">
+      <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col glass-card border-border shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 my-4 sm:my-8 z-10 overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border/60">
           <div className="flex items-center gap-3">

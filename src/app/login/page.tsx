@@ -63,7 +63,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form Box */}
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-2xl shadow-2xl space-y-6">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 sm:p-8 rounded-2xl shadow-2xl space-y-6">
           {error && (
             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-3">
               <AlertCircle className="w-4 h-4 shrink-0" />

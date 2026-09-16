@@ -12,6 +12,7 @@ interface ExportExcelButtonProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   showIcon?: boolean;
+  responsive?: boolean;
 }
 
 const DEFAULT_LABELS: Record<ExportScope, string> = {
@@ -30,6 +31,7 @@ export function ExportExcelButton({
   size = "md",
   className = "",
   showIcon = true,
+  responsive = false,
 }: ExportExcelButtonProps) {
   const [loading, setLoading] = useState(false);
 
@@ -104,7 +106,9 @@ export function ExportExcelButton({
       ) : showIcon ? (
         <FileSpreadsheet className="w-4 h-4 text-emerald-500 shrink-0 transition-transform group-hover:scale-110" />
       ) : null}
-      <span>{loading ? "Generating Excel..." : displayLabel}</span>
+      <span className={responsive ? "hidden sm:inline" : ""}>
+        {loading ? "Generating Excel..." : displayLabel}
+      </span>
     </button>
   );
 }

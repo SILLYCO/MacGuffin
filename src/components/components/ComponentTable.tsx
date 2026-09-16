@@ -162,94 +162,94 @@ export function ComponentTable({ components, devices, userRole }: ComponentTable
   });
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-5 sm:space-y-6 pb-8">
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
             Modular Hardware Components & Parts
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Track individual RAM sticks, SSDs, GPUs, swappable PC modules, and transfer history
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <ExportExcelButton scope="components" label="Export (.xlsx)" />
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+          <ExportExcelButton scope="components" label="Export (.xlsx)" responsive={true} />
           {isIT && (
             <button
               type="button"
               onClick={() => setIsNewModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
             >
               <Plus className="w-4 h-4" />
-              Stock New Component
+              <span>Stock New Component</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Mini Stats Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="glass-card p-4 flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-            <Layers className="w-5 h-5" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="glass-card p-3.5 sm:p-4 flex items-center gap-2.5 sm:gap-3.5">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+            <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-foreground">{totalCount}</div>
-            <div className="text-[11px] font-semibold text-muted-foreground">Total Parts Tracked</div>
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground">{totalCount}</div>
+            <div className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground">Total Parts Tracked</div>
           </div>
         </div>
 
-        <div className="glass-card p-4 flex items-center gap-3.5 border-emerald-500/30">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className="glass-card p-3.5 sm:p-4 flex items-center gap-2.5 sm:gap-3.5 border-emerald-500/30">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-foreground">{inStockCount}</div>
-            <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-              Ready on Stock Shelf
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground">{inStockCount}</div>
+            <div className="text-[10px] sm:text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+              Ready on Shelf
             </div>
           </div>
         </div>
 
-        <div className="glass-card p-4 flex items-center gap-3.5 border-blue-500/30">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Monitor className="w-5 h-5" />
+        <div className="glass-card p-3.5 sm:p-4 flex items-center gap-2.5 sm:gap-3.5 border-blue-500/30">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Monitor className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-foreground">{installedCount}</div>
-            <div className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
-              Mounted in Computers
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground">{installedCount}</div>
+            <div className="text-[10px] sm:text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+              Mounted in PCs
             </div>
           </div>
         </div>
 
-        <div className="glass-card p-4 flex items-center gap-3.5 border-rose-500/30">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5" />
+        <div className="glass-card p-3.5 sm:p-4 flex items-center gap-2.5 sm:gap-3.5 border-rose-500/30">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-foreground">{defectiveCount}</div>
-            <div className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-              Defective / In Repair
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground">{defectiveCount}</div>
+            <div className="text-[10px] sm:text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+              Defective / Repair
             </div>
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-card p-4 md:p-5 space-y-4">
+      <div className="glass-card p-3.5 sm:p-4 md:p-5 space-y-3.5 sm:space-y-4">
         {/* Search & Category Pills */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4">
+          <div className="relative w-full lg:max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by part, brand, model, serial number, or PC..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+              className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             />
             {search && (
               <button
