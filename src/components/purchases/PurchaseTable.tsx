@@ -125,27 +125,27 @@ export function PurchaseTable({ purchases, userRole }: PurchaseTableProps) {
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-5 sm:space-y-6 pb-8">
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
             <span>IT Purchases & Invoices</span>
-            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+            <span className="px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-primary/10 text-primary border border-primary/20">
               EGP (ج.م)
             </span>
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Log procurement receipts, monitor hardware asset pricing, and manage expense proofs
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <ExportExcelButton scope="purchases" label="Export (.xlsx)" />
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+          <ExportExcelButton scope="purchases" label="Export (.xlsx)" responsive={true} />
           {isIT && (
             <Link
               href="/purchases/new"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>+ Log New Purchase</span>
@@ -155,18 +155,18 @@ export function PurchaseTable({ purchases, userRole }: PurchaseTableProps) {
       </div>
 
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Total Spend */}
-        <div className="glass-card p-4.5 space-y-2 border-primary/30">
+        <div className="glass-card p-3.5 sm:p-4.5 space-y-1.5 sm:space-y-2 border-primary/30">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Procurement Spend
+              Total Spend
             </span>
             <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <Receipt className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-foreground tracking-tight">
+          <div className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
             {formatEGP(totalSpend)}
           </div>
           <div className="text-[11px] text-muted-foreground font-medium">
@@ -175,16 +175,16 @@ export function PurchaseTable({ purchases, userRole }: PurchaseTableProps) {
         </div>
 
         {/* Card 2: Tracked Hardware Spend */}
-        <div className="glass-card p-4.5 space-y-2 border-emerald-500/30">
+        <div className="glass-card p-3.5 sm:p-4.5 space-y-1.5 sm:space-y-2 border-emerald-500/30">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-              Tracked Hardware Assets
+              Tracked Hardware
             </span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <Package className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-foreground tracking-tight">
+          <div className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
             {formatEGP(trackedSpend)}
           </div>
           <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
@@ -193,7 +193,7 @@ export function PurchaseTable({ purchases, userRole }: PurchaseTableProps) {
         </div>
 
         {/* Card 3: Untracked Supplies Spend */}
-        <div className="glass-card p-4.5 space-y-2 border-amber-500/30">
+        <div className="glass-card p-3.5 sm:p-4.5 space-y-1.5 sm:space-y-2 border-amber-500/30">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               Untracked Consumables
@@ -202,25 +202,25 @@ export function PurchaseTable({ purchases, userRole }: PurchaseTableProps) {
               <FileText className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-foreground tracking-tight">
+          <div className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
             {formatEGP(untrackedSpend)}
           </div>
           <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-            Proof-of-purchase only (stickers, paste, ties)
+            Proof-of-purchase only (stickers, paste)
           </div>
         </div>
 
         {/* Card 4: Total Units Purchased */}
-        <div className="glass-card p-4.5 space-y-2 border-blue-500/30">
+        <div className="glass-card p-3.5 sm:p-4.5 space-y-1.5 sm:space-y-2 border-blue-500/30">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-              Total Units Purchased
+              Total Units
             </span>
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Tag className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-foreground tracking-tight">
+          <div className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
             {totalItemsCount}
           </div>
           <div className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">
@@ -230,16 +230,16 @@ export function PurchaseTable({ purchases, userRole }: PurchaseTableProps) {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-card p-4 md:p-5 space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+      <div className="glass-card p-3.5 sm:p-4 md:p-5 space-y-3.5 sm:space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4">
+          <div className="relative w-full lg:max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by vendor, invoice #, or product name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+              className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             />
             {search && (
               <button

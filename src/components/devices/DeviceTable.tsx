@@ -99,44 +99,44 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
   });
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-5 sm:space-y-6 pb-8">
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
             Company Computer Fleet
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Track company laptops, desktop PCs, modular hardware components, and staff allocations
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <ExportExcelButton scope="devices" label="Export (.xlsx)" />
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+          <ExportExcelButton scope="devices" label="Export (.xlsx)" responsive={true} />
           {isIT && (
             <Link
               href="/devices/new"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
             >
               <Plus className="w-4 h-4" />
-              Add New Computer
+              <span>Add New Computer</span>
             </Link>
           )}
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-card p-4 md:p-5 space-y-4">
+      <div className="glass-card p-3.5 sm:p-4 md:p-5 space-y-3.5 sm:space-y-4">
         {/* Top Row: Search & Form-Factor Segmented Control */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4">
+          <div className="relative w-full lg:max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by brand, model, CPU, serial, or employee..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+              className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             />
             {search && (
               <button
@@ -151,13 +151,14 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
           </div>
 
           {/* Form Factor Segmented Tabs */}
-          <div className="inline-flex p-1 bg-muted/60 border border-border/80 rounded-xl self-start sm:self-auto text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setTypeFilter("ALL")}
-              className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                typeFilter === "ALL"
-                  ? "bg-background text-foreground shadow-sm font-bold"
+          <div className="overflow-x-auto max-w-full pb-1 sm:pb-0 -mx-1 px-1 flex">
+            <div className="inline-flex p-1 bg-muted/60 border border-border/80 rounded-xl text-xs font-semibold shrink-0">
+              <button
+                type="button"
+                onClick={() => setTypeFilter("ALL")}
+                className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all ${
+                  typeFilter === "ALL"
+                    ? "bg-background text-foreground shadow-sm font-bold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -201,6 +202,7 @@ export function DeviceTable({ devices, userRole }: DeviceTableProps) {
                 Workstations ({workstationCount})
               </button>
             )}
+            </div>
           </div>
         </div>
 

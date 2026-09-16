@@ -61,21 +61,21 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
 
   return (
     <AppShell user={session.user}>
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
         {/* Header & Back Link */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4">
             <Link
               href="/employees"
-              className="p-2 rounded-lg bg-card border border-border hover:bg-muted text-muted-foreground transition-colors"
+              className="p-2 rounded-xl bg-card border border-border hover:bg-muted text-muted-foreground transition-colors shrink-0 mt-0.5 sm:mt-0"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{employee.name}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">{employee.name}</h1>
               <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5" />
-                {employee.email}
+                <span>{employee.email}</span>
               </p>
             </div>
           </div>

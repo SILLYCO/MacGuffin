@@ -124,25 +124,25 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
 
   return (
     <AppShell user={session.user}>
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
         {/* Navigation & Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4">
             <Link
               href="/devices"
-              className="p-2 rounded-lg bg-card border border-border hover:bg-muted text-muted-foreground transition-colors"
+              className="p-2 rounded-xl bg-card border border-border hover:bg-muted text-muted-foreground transition-colors shrink-0 mt-0.5 sm:mt-0"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
                   {device.deviceType === "DESKTOP_PC" ? (
-                    <Monitor className="w-6 h-6 text-purple-500" />
+                    <Monitor className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500 shrink-0" />
                   ) : device.deviceType === "WORKSTATION" || device.deviceType === "SERVER" ? (
-                    <Server className="w-6 h-6 text-indigo-500" />
+                    <Server className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-500 shrink-0" />
                   ) : (
-                    <Laptop className="w-6 h-6 text-primary" />
+                    <Laptop className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
                   )}
                   <span>{device.brand} {device.model}</span>
                 </h1>

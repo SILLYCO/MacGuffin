@@ -68,9 +68,9 @@ export function ReassignModal({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card border border-border shadow-xl rounded-xl w-full max-w-md overflow-hidden">
-        <div className="p-5 border-b border-border flex items-center justify-between">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-card border border-border shadow-xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 text-foreground font-semibold">
             <UserCheck className="w-5 h-5 text-primary" />
             <span>Assign / Reassign Device</span>
@@ -83,7 +83,7 @@ export function ReassignModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
           <div className="p-3 rounded-lg bg-muted/40 border border-border/60 text-xs">
             <span className="font-semibold text-foreground">Target Device: </span>
             <span className="text-muted-foreground">{deviceTitle}</span>

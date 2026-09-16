@@ -72,10 +72,10 @@ export function ResetPasswordModal({ user, onClose, onSuccess }: ResetPasswordMo
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-md overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-border flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 text-foreground font-bold">
             <KeyRound className="w-5 h-5 text-primary" />
             <span>Reset User Password</span>
@@ -88,7 +88,7 @@ export function ResetPasswordModal({ user, onClose, onSuccess }: ResetPasswordMo
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {/* Target User Info Card */}
           <div className="p-3.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
             <div>

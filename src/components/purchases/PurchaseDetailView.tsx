@@ -139,7 +139,7 @@ export function PurchaseDetailView({ purchase, userRole }: PurchaseDetailProps) 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-16">
       {/* Top action bar */}
-      <div className="flex items-center justify-between no-print">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
         <Link
           href="/purchases"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
@@ -148,11 +148,11 @@ export function PurchaseDetailView({ purchase, userRole }: PurchaseDetailProps) 
           <span>Back to Purchases Directory</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-border bg-background hover:bg-muted transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl border border-border bg-background hover:bg-muted transition-colors shadow-sm"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print Invoice</span>
@@ -162,7 +162,7 @@ export function PurchaseDetailView({ purchase, userRole }: PurchaseDetailProps) 
             <>
               <Link
                 href={`/purchases/${purchase.id}/edit`}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-border bg-background hover:bg-muted transition-colors shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl border border-border bg-background hover:bg-muted transition-colors shadow-sm"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 <span>Edit</span>
@@ -172,7 +172,7 @@ export function PurchaseDetailView({ purchase, userRole }: PurchaseDetailProps) 
                 type="button"
                 disabled={deleting}
                 onClick={handleDelete}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-destructive/30 text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl border border-destructive/30 text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors disabled:opacity-50"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Delete</span>
@@ -190,7 +190,7 @@ export function PurchaseDetailView({ purchase, userRole }: PurchaseDetailProps) 
       )}
 
       {/* Invoice Card Container */}
-      <div className="glass-card p-6 md:p-8 space-y-8 print:shadow-none print:border-none">
+      <div className="glass-card p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 print:shadow-none print:border-none">
         {/* Receipt Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start gap-6 pb-6 border-b border-border/70">
           <div className="space-y-2">

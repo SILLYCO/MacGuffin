@@ -118,10 +118,10 @@ export function ChangeStatusModal({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
       <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden space-y-4 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-border flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 text-foreground font-bold">
             <RefreshCw className="w-5 h-5 text-primary" />
             <span>Update Device Status</span>
@@ -135,7 +135,7 @@ export function ChangeStatusModal({
         </div>
 
         {/* Scrollable Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {hasActiveAssignment ? (
             <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex items-start gap-2.5">
               <UserCheck className="w-4 h-4 shrink-0 mt-0.5 text-blue-400" />

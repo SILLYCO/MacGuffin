@@ -136,44 +136,44 @@ export function PrinterTable({ printers, userRole }: PrinterTableProps) {
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-5 sm:space-y-6 pb-8">
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
             Network Printers Directory
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Track printer hardware models, IP & MAC addresses, ink refill dates, and repair lifecycles
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <ExportExcelButton scope="printers" label="Export (.xlsx)" />
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+          <ExportExcelButton scope="printers" label="Export (.xlsx)" responsive={true} />
           {isIT && (
             <Link
               href="/printers/new"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-105 transition-all"
             >
               <Plus className="w-4 h-4" />
-              Register New Printer
+              <span>Register New Printer</span>
             </Link>
           )}
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-card p-4 md:p-5 space-y-4">
+      <div className="glass-card p-3.5 sm:p-4 md:p-5 space-y-3.5 sm:space-y-4">
         {/* Top Row: Search & Status Segments */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4">
+          <div className="relative w-full lg:max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by brand, model, IP, MAC, or location..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+              className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm bg-background/80 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             />
             {search && (
               <button
@@ -188,42 +188,44 @@ export function PrinterTable({ printers, userRole }: PrinterTableProps) {
           </div>
 
           {/* Quick 1-Click Status Segmented Control */}
-          <div className="inline-flex p-1 bg-muted/60 border border-border/80 rounded-xl self-start sm:self-auto text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setStatusFilter("ALL")}
-              className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                statusFilter === "ALL"
-                  ? "bg-background text-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              All ({printers.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter(PrinterStatus.WORKING)}
-              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                statusFilter === PrinterStatus.WORKING
-                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              Working ({totalWorking})
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter(PrinterStatus.IN_REPAIR)}
-              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                statusFilter === PrinterStatus.IN_REPAIR
-                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-              In Repair ({totalInRepair})
-            </button>
+          <div className="overflow-x-auto max-w-full pb-1 sm:pb-0 -mx-1 px-1 flex">
+            <div className="inline-flex p-1 bg-muted/60 border border-border/80 rounded-xl text-xs font-semibold shrink-0">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("ALL")}
+                className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all ${
+                  statusFilter === "ALL"
+                    ? "bg-background text-foreground shadow-sm font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All ({printers.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("WORKING")}
+                className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  statusFilter === "WORKING"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-sm font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Working ({totalWorking})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("IN_REPAIR")}
+                className={`px-3 sm:px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  statusFilter === "IN_REPAIR"
+                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-sm font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                In Repair ({totalInRepair})
+              </button>
+            </div>
           </div>
         </div>
 

@@ -207,12 +207,12 @@ export function ComponentDetailView({ component, devices, userRole }: ComponentD
       )}
 
       {/* Hero Header Card */}
-      <div className="glass-card p-6 md:p-8 space-y-6 relative overflow-hidden border-border/80">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="flex items-start gap-4">
+      <div className="glass-card p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 relative overflow-hidden border-border/80">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-6 relative z-10">
+          <div className="flex items-start gap-3 sm:gap-4">
             <ComponentIconBadge type={component.type} size="xl" className="mt-1 shadow-lg shrink-0" />
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2.5">
+            <div className="space-y-2.5 sm:space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${typeMeta.badge}`}
                 >
@@ -230,15 +230,15 @@ export function ComponentDetailView({ component, devices, userRole }: ComponentD
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-foreground tracking-tight">
                 {component.brand} {component.model}
               </h1>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
               <button
                 type="button"
                 onClick={handleCopySerial}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-muted/60 border border-border/70 hover:bg-muted font-mono transition-colors text-foreground"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-muted/60 border border-border/70 hover:bg-muted font-mono transition-colors text-foreground"
                 title="Click to copy serial number"
               >
                 <span>SN: {component.serialNumber}</span>
@@ -249,18 +249,18 @@ export function ComponentDetailView({ component, devices, userRole }: ComponentD
                 Added {new Date(component.createdAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
               </span>
             </div>
+            </div>
           </div>
-        </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {isIT && (
               <>
                 {component.status === ComponentStatus.IN_STOCK && (
                   <button
                     type="button"
                     onClick={() => setIsInstallModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all hover:scale-105"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all hover:scale-105"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Mount into PC</span>
