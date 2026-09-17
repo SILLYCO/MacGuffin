@@ -8,6 +8,7 @@ import {
   buildPurchasesWorksheet,
   buildEmployeesWorksheet,
   buildPrintersWorksheet,
+  buildNetworkWorksheet,
 } from "@/lib/excel";
 
 export async function GET(request: NextRequest) {
@@ -92,11 +93,25 @@ export async function GET(request: NextRequest) {
         orderBy: { brand: "asc" },
       });
 
+      const networkDevices = await db.networkDevice.findMany({
+        include: {
+          outgoingConnections: {
+            include: {
+              targetNetworkDevice: true,
+              targetDevice: true,
+              targetPrinter: true,
+            },
+          },
+        },
+        orderBy: { name: "asc" },
+      });
+
       buildComputersWorksheet(workbook, devices);
       buildComponentsWorksheet(workbook, components);
       buildPurchasesWorksheet(workbook, purchases);
       buildEmployeesWorksheet(workbook, employees);
       buildPrintersWorksheet(workbook, printers);
+      buildNetworkWorksheet(workbook, networkDevices);
 
       filename = `it-assets-full-export-${timestamp}.xlsx`;
     } else if (scope === "devices") {
@@ -170,6 +185,21 @@ export async function GET(request: NextRequest) {
       });
       buildPrintersWorksheet(workbook, printers);
       filename = `network-printers-${timestamp}.xlsx`;
+    } else if (scope === "network") {
+      const networkDevices = await db.networkDevice.findMany({
+        include: {
+          outgoingConnections: {
+            include: {
+              targetNetworkDevice: true,
+              targetDevice: true,
+              targetPrinter: true,
+            },
+          },
+        },
+        orderBy: { name: "asc" },
+      });
+      buildNetworkWorksheet(workbook, networkDevices);
+      filename = `network-cabling-${timestamp}.xlsx`;
     } else {
       return new NextResponse("Invalid export scope", { status: 400 });
     }

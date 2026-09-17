@@ -348,3 +348,72 @@ export function buildPrintersWorksheet(workbook: ExcelJS.Workbook, printers: any
   applyWorksheetStyling(sheet);
   return sheet;
 }
+
+/**
+ * Tab 6: Network Infrastructure & Cabling
+ */
+export function buildNetworkWorksheet(workbook: ExcelJS.Workbook, networkDevices: any[]) {
+  const sheet = workbook.addWorksheet("Network & Cabling");
+
+  sheet.columns = [
+    { header: "Switch / Router", key: "deviceName" },
+    { header: "Hardware Role", key: "deviceType" },
+    { header: "Brand & Model", key: "deviceModel" },
+    { header: "Management IP", key: "ipAddress" },
+    { header: "Switch Port", key: "port" },
+    { header: "Port Label", key: "portLabel" },
+    { header: "Target Type", key: "targetType" },
+    { header: "Connected Target Name", key: "targetName" },
+    { header: "Cable Type", key: "cableType" },
+    { header: "Link Speed", key: "speed" },
+    { header: "Cable Color", key: "cableColor" },
+    { header: "VLAN", key: "vlan" },
+    { header: "Wall Outlet Plate", key: "wallOutlet" },
+    { header: "Notes", key: "notes" },
+  ];
+
+  networkDevices.forEach((dev) => {
+    (dev.outgoingConnections || []).forEach((conn: any) => {
+      const isUplink = !!conn.targetNetworkDeviceId;
+      const isComputer = !!conn.targetDeviceId;
+      const isPrinter = !!conn.targetPrinterId;
+
+      const targetType = isUplink
+        ? "Switch Trunk / Uplink"
+        : isComputer
+        ? "Workstation PC"
+        : isPrinter
+        ? "Network Printer"
+        : conn.endpointType || "Wall Jack / Other";
+
+      const targetName = isUplink
+        ? `${conn.targetNetworkDevice?.name || "Switch"} (Port ${conn.targetNetworkPort || "?"})`
+        : isComputer
+        ? `${conn.targetDevice?.brand || ""} ${conn.targetDevice?.model || ""}`.trim()
+        : isPrinter
+        ? `${conn.targetPrinter?.brand || ""} ${conn.targetPrinter?.model || ""}`.trim()
+        : conn.endpointName || "—";
+
+      sheet.addRow({
+        deviceName: dev.name,
+        deviceType: dev.deviceType,
+        deviceModel: `${dev.brand} ${dev.model}`,
+        ipAddress: dev.ipAddress || "—",
+        port: `Port ${conn.fromPort}`,
+        portLabel: conn.fromPortLabel || `Port ${conn.fromPort}`,
+        targetType,
+        targetName,
+        cableType: conn.cableType,
+        speed: conn.speed,
+        cableColor: conn.cableColor || "Standard",
+        vlan: conn.vlan || "Default (1)",
+        wallOutlet: conn.wallOutlet || "Direct",
+        notes: conn.notes || "—",
+      });
+    });
+  });
+
+  applyWorksheetStyling(sheet);
+  return sheet;
+}
+

@@ -56,6 +56,11 @@ export default async function PrinterDetailPage({ params }: PrinterDetailPagePro
       inkRefills: {
         orderBy: { refillDate: "desc" },
       },
+      networkConnections: {
+        include: {
+          fromDevice: true,
+        },
+      },
     },
   });
 
@@ -403,6 +408,35 @@ export default async function PrinterDetailPage({ params }: PrinterDetailPagePro
                       {printer.location}
                     </span>
                   </div>
+                </div>
+              )}
+
+              {/* Network Switch Port Link */}
+              {printer.networkConnections && printer.networkConnections.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-blue-400">
+                      {printer.networkConnections[0].fromDevice?.name}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-500/20 text-blue-300">
+                      Port {printer.networkConnections[0].fromPort}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5 pt-1 border-t border-blue-500/20">
+                    <div>Cable: <strong className="text-foreground">{printer.networkConnections[0].cableType}</strong></div>
+                    {printer.networkConnections[0].vlan && (
+                      <div>VLAN: <strong className="text-foreground">{printer.networkConnections[0].vlan}</strong></div>
+                    )}
+                    {printer.networkConnections[0].wallOutlet && (
+                      <div>Outlet: <strong className="text-foreground">{printer.networkConnections[0].wallOutlet}</strong></div>
+                    )}
+                  </div>
+                  <Link
+                    href="/network"
+                    className="inline-block text-[11px] font-bold text-primary hover:underline pt-1"
+                  >
+                    View on Network Map ➔
+                  </Link>
                 </div>
               )}
 
