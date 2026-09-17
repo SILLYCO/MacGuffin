@@ -341,7 +341,89 @@ async function main() {
       }
     }
 
-    // 12. Optional Work Credentials
+    // 12. Network Devices (Routers, Switches, APs)
+    if (data.networkDevices?.length) {
+      console.log(`🌐 Restoring ${data.networkDevices.length} network devices...`);
+      for (const netDev of data.networkDevices) {
+        await prisma.networkDevice.upsert({
+          where: { id: netDev.id },
+          create: {
+            id: netDev.id,
+            name: netDev.name,
+            deviceType: netDev.deviceType,
+            brand: netDev.brand,
+            model: netDev.model,
+            ipAddress: netDev.ipAddress ?? null,
+            macAddress: netDev.macAddress ?? null,
+            location: netDev.location ?? null,
+            totalPorts: netDev.totalPorts,
+            status: netDev.status,
+            notes: netDev.notes ?? null,
+            createdAt: new Date(netDev.createdAt),
+            updatedAt: new Date(netDev.updatedAt),
+          },
+          update: {
+            name: netDev.name,
+            deviceType: netDev.deviceType,
+            brand: netDev.brand,
+            model: netDev.model,
+            ipAddress: netDev.ipAddress ?? null,
+            macAddress: netDev.macAddress ?? null,
+            location: netDev.location ?? null,
+            totalPorts: netDev.totalPorts,
+            status: netDev.status,
+            notes: netDev.notes ?? null,
+          },
+        });
+      }
+    }
+
+    // 13. Network Connections (Ethernet cable runs & trunk links)
+    if (data.networkConnections?.length) {
+      console.log(`🔌 Restoring ${data.networkConnections.length} network cable connections...`);
+      for (const conn of data.networkConnections) {
+        await prisma.networkConnection.upsert({
+          where: { id: conn.id },
+          create: {
+            id: conn.id,
+            fromDeviceId: conn.fromDeviceId,
+            fromPort: conn.fromPort,
+            fromPortLabel: conn.fromPortLabel ?? null,
+            targetNetworkDeviceId: conn.targetNetworkDeviceId ?? null,
+            targetNetworkPort: conn.targetNetworkPort ?? null,
+            targetDeviceId: conn.targetDeviceId ?? null,
+            targetPrinterId: conn.targetPrinterId ?? null,
+            endpointName: conn.endpointName ?? null,
+            endpointType: conn.endpointType ?? null,
+            cableType: conn.cableType,
+            cableColor: conn.cableColor ?? null,
+            speed: conn.speed,
+            vlan: conn.vlan ?? null,
+            wallOutlet: conn.wallOutlet ?? null,
+            notes: conn.notes ?? null,
+            createdAt: new Date(conn.createdAt),
+            updatedAt: new Date(conn.updatedAt),
+          },
+          update: {
+            fromPortLabel: conn.fromPortLabel ?? null,
+            targetNetworkDeviceId: conn.targetNetworkDeviceId ?? null,
+            targetNetworkPort: conn.targetNetworkPort ?? null,
+            targetDeviceId: conn.targetDeviceId ?? null,
+            targetPrinterId: conn.targetPrinterId ?? null,
+            endpointName: conn.endpointName ?? null,
+            endpointType: conn.endpointType ?? null,
+            cableType: conn.cableType,
+            cableColor: conn.cableColor ?? null,
+            speed: conn.speed,
+            vlan: conn.vlan ?? null,
+            wallOutlet: conn.wallOutlet ?? null,
+            notes: conn.notes ?? null,
+          },
+        });
+      }
+    }
+
+    // 14. Optional Work Credentials
     if (data.workCredentials?.length && "workCredential" in prisma) {
       console.log(`🔑 Restoring ${data.workCredentials.length} work credentials...`);
       for (const cred of data.workCredentials) {

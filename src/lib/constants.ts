@@ -443,5 +443,122 @@ export const COMMON_VENDOR_SUGGESTIONS = [
   "Direct Distributor",
 ] as const;
 
+export const NETWORK_DEVICE_TYPE_CONFIG: Record<
+  string,
+  { label: string; iconName: string; badge: string; border: string }
+> = {
+  ROUTER: {
+    label: "Router / Gateway",
+    iconName: "Router",
+    badge: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
+    border: "border-indigo-500",
+  },
+  SWITCH: {
+    label: "Network Switch",
+    iconName: "Server",
+    badge: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+    border: "border-blue-500",
+  },
+  ACCESS_POINT: {
+    label: "Access Point (AP)",
+    iconName: "Wifi",
+    badge: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20",
+    border: "border-cyan-500",
+  },
+  FIREWALL: {
+    label: "Firewall / Appliance",
+    iconName: "Shield",
+    badge: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
+    border: "border-rose-500",
+  },
+  PATCH_PANEL: {
+    label: "Patch Panel",
+    iconName: "Grid",
+    badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+    border: "border-amber-500",
+  },
+  OTHER: {
+    label: "Other Device",
+    iconName: "Network",
+    badge: "bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20",
+    border: "border-slate-500",
+  },
+};
+
+export const NETWORK_DEVICE_STATUS_CONFIG: Record<
+  string,
+  { label: string; bg: string; text: string; dot: string }
+> = {
+  ONLINE: {
+    label: "Online / Operational",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+    text: "text-emerald-700 dark:text-emerald-400",
+    dot: "bg-emerald-500 animate-pulse",
+  },
+  OFFLINE: {
+    label: "Offline / Disconnected",
+    bg: "bg-rose-500/10 border-rose-500/20",
+    text: "text-rose-700 dark:text-rose-400",
+    dot: "bg-rose-500",
+  },
+  MAINTENANCE: {
+    label: "Maintenance / Upgrading",
+    bg: "bg-amber-500/10 border-amber-500/20",
+    text: "text-amber-700 dark:text-amber-400",
+    dot: "bg-amber-500",
+  },
+};
+
+export const CABLE_TYPE_OPTIONS: Record<string, { label: string; category: "COPPER" | "FIBER" | "OTHER" }> = {
+  CAT5E: { label: "Cat5e UTP (1 Gbps)", category: "COPPER" },
+  CAT6: { label: "Cat6 UTP / STP (1-10 Gbps)", category: "COPPER" },
+  CAT6A: { label: "Cat6A 10G Shielded (10 Gbps)", category: "COPPER" },
+  CAT7: { label: "Cat7 Shielded (10 Gbps)", category: "COPPER" },
+  CAT8: { label: "Cat8 40G Ultra-High Speed", category: "COPPER" },
+  FIBER_SINGLE_MODE: { label: "Single-Mode Fiber (SMF Yellow)", category: "FIBER" },
+  FIBER_MULTI_MODE: { label: "Multi-Mode Fiber (MMF Aqua / Orange)", category: "FIBER" },
+  DAC_COPPER: { label: "Direct Attach SFP+ Copper (DAC)", category: "COPPER" },
+  OTHER: { label: "Custom / Other Cable", category: "OTHER" },
+};
+
+export const CONNECTION_SPEED_OPTIONS: Record<string, { label: string; short: string }> = {
+  SPEED_100_MBPS: { label: "100 Mbps (Fast Ethernet)", short: "100M" },
+  SPEED_1_GBPS: { label: "1 Gbps (Gigabit)", short: "1G" },
+  SPEED_2_5_GBPS: { label: "2.5 Gbps (Multi-Gig)", short: "2.5G" },
+  SPEED_10_GBPS: { label: "10 Gbps (10G SFP+/RJ45)", short: "10G" },
+  SPEED_40_GBPS: { label: "40 Gbps QSFP+", short: "40G" },
+  SPEED_100_GBPS: { label: "100 Gbps QSFP28", short: "100G" },
+  OTHER: { label: "Other / Unspecified", short: "Auto" },
+};
+
+export const CABLE_COLOR_PALETTE = [
+  { name: "Blue", label: "Blue (General Data)", hex: "#3b82f6", bg: "bg-blue-500" },
+  { name: "Yellow", label: "Yellow (VoIP / Phone)", hex: "#eab308", bg: "bg-yellow-500" },
+  { name: "Orange", label: "Orange (Printer / Peripheral)", hex: "#f97316", bg: "bg-orange-500" },
+  { name: "Green", label: "Green (PoE / CCTV / AP)", hex: "#22c55e", bg: "bg-green-500" },
+  { name: "Red", label: "Red (Uplink / Critical / Server)", hex: "#ef4444", bg: "bg-red-500" },
+  { name: "Purple", label: "Purple (Management / Trunk)", hex: "#a855f7", bg: "bg-purple-500" },
+  { name: "Gray", label: "Gray (Standard Patch)", hex: "#6b7280", bg: "bg-gray-500" },
+  { name: "White", label: "White (Wall Drop)", hex: "#e5e7eb", bg: "bg-slate-200" },
+  { name: "Black", label: "Black (Outdoor / Direct)", hex: "#1f2937", bg: "bg-zinc-800" },
+] as const;
+
+export const COMMON_SWITCH_PORT_PRESETS = [8, 16, 24, 48] as const;
+
+export const NETWORK_BRAND_PRESETS = [
+  "Cisco",
+  "Ubiquiti UniFi",
+  "MikroTik",
+  "TP-Link Omada",
+  "Aruba (HPE)",
+  "Dell Networking",
+  "Netgear",
+  "Fortinet",
+  "Juniper",
+  "D-Link",
+  "Other",
+] as const;
+
+
 
 

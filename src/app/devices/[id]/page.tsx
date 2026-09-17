@@ -23,6 +23,8 @@ import {
   Clock,
   Sparkles,
   Layers,
+  Network,
+  Cable,
 } from "lucide-react";
 import { DEVICE_TYPES } from "@/lib/constants";
 import { computeDeviceLiveSpecs } from "@/lib/hardware";
@@ -58,6 +60,11 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
             transfers: {
               orderBy: { transferredAt: "desc" },
             },
+          },
+        },
+        networkConnections: {
+          include: {
+            fromDevice: true,
           },
         },
       },
@@ -282,6 +289,61 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
                   <p className="text-xs text-muted-foreground">
                     This laptop is currently in inventory and available for assignment.
                   </p>
+                </div>
+              )}
+            </div>
+
+            {/* Network Connection & Cabling Card */}
+            <div className="glass-card p-5 space-y-3">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Network className="w-4 h-4 text-primary" />
+                  Network Connection
+                </h2>
+                {device.networkConnections && device.networkConnections.length > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Port Connected" />
+                )}
+              </div>
+
+              {device.networkConnections && device.networkConnections.length > 0 ? (
+                device.networkConnections.map((conn: any) => (
+                  <div key={conn.id} className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-blue-400">
+                        {conn.fromDevice?.name}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-500/20 text-blue-300">
+                        Port {conn.fromPort}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground space-y-1 pt-1 border-t border-blue-500/20">
+                      <div>
+                        Cable: <strong className="text-foreground">{conn.cableType}</strong>
+                      </div>
+                      {conn.vlan && (
+                        <div>
+                          VLAN: <strong className="text-foreground">{conn.vlan}</strong>
+                        </div>
+                      )}
+                      {conn.wallOutlet && (
+                        <div>
+                          Wall Outlet: <strong className="text-foreground">{conn.wallOutlet}</strong>
+                        </div>
+                      )}
+                    </div>
+
+                    <Link
+                      href="/network"
+                      className="inline-block text-[11px] font-bold text-primary hover:underline pt-1"
+                    >
+                      View on Network Map ➔
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 rounded-xl bg-muted/30 border border-border/60 text-center text-xs text-muted-foreground">
+                  No Ethernet patch cord assigned (Wi-Fi or unpatched)
                 </div>
               )}
             </div>

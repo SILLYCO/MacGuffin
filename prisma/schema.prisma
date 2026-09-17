@@ -98,6 +98,16 @@ enum AuditAction {
   PURCHASE_CREATED
   PURCHASE_UPDATED
   PURCHASE_DELETED
+  CREDENTIAL_CREATED
+  CREDENTIAL_UPDATED
+  CREDENTIAL_DELETED
+  CREDENTIAL_REVEALED
+  CREDENTIAL_DEPROVISIONED
+  NETWORK_DEVICE_CREATED
+  NETWORK_DEVICE_UPDATED
+  NETWORK_DEVICE_DELETED
+  NETWORK_PORT_PATCHED
+  NETWORK_PORT_UNPATCHED
 }
 
 enum AuditEntityType {
@@ -108,6 +118,9 @@ enum AuditEntityType {
   PRINTER
   COMPONENT
   PURCHASE
+  CREDENTIAL
+  NETWORK_DEVICE
+  NETWORK_CONNECTION
 }
 
 model User {
@@ -148,10 +161,11 @@ model Device {
   assignments    Assignment[]
   repairs        RepairRecord[]
   components     Component[]
-  transfersFrom  ComponentTransfer[] @relation("TransfersFrom")
-  transfersTo    ComponentTransfer[] @relation("TransfersTo")
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  transfersFrom      ComponentTransfer[] @relation("TransfersFrom")
+  transfersTo        ComponentTransfer[] @relation("TransfersTo")
+  networkConnections NetworkConnection[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([deviceType])
 }
@@ -225,6 +239,7 @@ model Printer {
   lastInkRefillNotes String?
   repairs            PrinterRepairRecord[]
   inkRefills         PrinterInkRefill[]
+  networkConnections NetworkConnection[]
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
 
@@ -377,3 +392,110 @@ model PurchaseItem {
   @@index([category])
   @@index([isTracked])
 }
+
+enum NetworkDeviceType {
+  ROUTER
+  SWITCH
+  ACCESS_POINT
+  FIREWALL
+  PATCH_PANEL
+  OTHER
+}
+
+enum NetworkDeviceStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+}
+
+enum CableType {
+  CAT5E
+  CAT6
+  CAT6A
+  CAT7
+  CAT8
+  FIBER_SINGLE_MODE
+  FIBER_MULTI_MODE
+  DAC_COPPER
+  OTHER
+}
+
+enum ConnectionSpeed {
+  SPEED_100_MBPS
+  SPEED_1_GBPS
+  SPEED_2_5_GBPS
+  SPEED_10_GBPS
+  SPEED_40_GBPS
+  SPEED_100_GBPS
+  OTHER
+}
+
+model NetworkDevice {
+  id                  String              @id @default(cuid())
+  name                String              // e.g. "Main Office Router", "Core Switch Rack A"
+  deviceType          NetworkDeviceType   @default(SWITCH)
+  brand               String              // e.g. "Cisco", "Ubiquiti", "MikroTik", "TP-Link", "Aruba"
+  model               String              // e.g. "Catalyst 2960X", "UniFi Pro 24 PoE"
+  ipAddress           String?             // e.g. "192.168.1.1"
+  macAddress          String?             // e.g. "00:11:22:33:44:55"
+  location            String?             // e.g. "Server Rack A", "Floor 2 Ceiling AP"
+  totalPorts          Int                 @default(24)
+  status              NetworkDeviceStatus @default(ONLINE)
+  notes               String?
+
+  // Connections originating from this device's ports
+  outgoingConnections NetworkConnection[] @relation("OriginDevice")
+  // Uplink connections targeting this device from another switch/router
+  incomingConnections NetworkConnection[] @relation("TargetNetworkDevice")
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([deviceType])
+  @@index([status])
+}
+
+model NetworkConnection {
+  id                    String          @id @default(cuid())
+
+  // Origin (Switch / Router)
+  fromDeviceId          String
+  fromDevice            NetworkDevice   @relation("OriginDevice", fields: [fromDeviceId], references: [id], onDelete: Cascade)
+  fromPort              Int             // e.g., 1..48
+  fromPortLabel         String?         // e.g., "Port 1", "SFP+ 1", "WAN 1"
+
+  // Destination Option A: Another Network Device (Uplink / Trunk between switches)
+  targetNetworkDeviceId String?
+  targetNetworkDevice   NetworkDevice?  @relation("TargetNetworkDevice", fields: [targetNetworkDeviceId], references: [id], onDelete: SetNull)
+  targetNetworkPort     Int?            // Destination port on the other switch/router
+
+  // Destination Option B: Computer / Workstation in Device Inventory
+  targetDeviceId        String?
+  targetDevice          Device?         @relation(fields: [targetDeviceId], references: [id], onDelete: SetNull)
+
+  // Destination Option C: Network Printer in Printer Inventory
+  targetPrinterId       String?
+  targetPrinter         Printer?        @relation(fields: [targetPrinterId], references: [id], onDelete: SetNull)
+
+  // Destination Option D: Generic / Custom Endpoint (e.g., "Wall Plate 3B", "Meeting Room TV", "CCTV Camera")
+  endpointName          String?
+  endpointType          String?         // "WALL_JACK", "CCTV", "SMART_TV", "VOIP_PHONE", "OTHER"
+
+  // Cable & Link Specifications
+  cableType             CableType       @default(CAT6)
+  cableColor            String?         // e.g., "Blue", "Yellow", "Red", "Green", "Purple"
+  speed                 ConnectionSpeed @default(SPEED_1_GBPS)
+  vlan                  String?         // e.g., "10 (Corporate)", "20 (Printers)", "Trunk"
+  wallOutlet            String?         // e.g., "Outlet 4A - Room 201"
+  notes                 String?
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@unique([fromDeviceId, fromPort])    // Physical constraint: 1 cable per port
+  @@index([fromDeviceId])
+  @@index([targetDeviceId])
+  @@index([targetPrinterId])
+  @@index([targetNetworkDeviceId])
+}
+

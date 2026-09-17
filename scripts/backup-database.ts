@@ -33,6 +33,8 @@ async function main() {
       componentTransfers,
       purchases,
       purchaseItems,
+      networkDevices,
+      networkConnections,
     ] = await Promise.all([
       prisma.user.findMany(),
       prisma.employee.findMany(),
@@ -47,6 +49,8 @@ async function main() {
       prisma.componentTransfer.findMany(),
       prisma.purchase.findMany(),
       prisma.purchaseItem.findMany(),
+      prisma.networkDevice.findMany(),
+      prisma.networkConnection.findMany(),
     ]);
 
     // Check optional work credentials if model exists
@@ -76,6 +80,8 @@ async function main() {
         componentTransfers: componentTransfers.length,
         purchases: purchases.length,
         purchaseItems: purchaseItems.length,
+        networkDevices: networkDevices.length,
+        networkConnections: networkConnections.length,
         workCredentials: workCredentials.length,
       },
       data: {
@@ -92,6 +98,8 @@ async function main() {
         componentTransfers,
         purchases,
         purchaseItems,
+        networkDevices,
+        networkConnections,
         workCredentials,
       },
     };

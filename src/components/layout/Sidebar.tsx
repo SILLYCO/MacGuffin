@@ -15,6 +15,7 @@ import {
   Sparkles,
   ScrollText,
   Receipt,
+  Network,
   X,
 } from "lucide-react";
 import { RoleBadge } from "@/components/ui/RoleBadge";
@@ -80,6 +81,11 @@ export function Sidebar({ user, isMobileOpen = false, onCloseMobile }: SidebarPr
       label: "Printers",
       href: "/printers",
       icon: Printer,
+    },
+    {
+      label: "Network & Topology",
+      href: "/network",
+      icon: Network,
     },
     {
       label: "Employees",
