@@ -1,0 +1,21 @@
+# go2rtc configuration for IT Asset Tracker CCTV Integration
+# Documentation: https://github.com/AlexxIT/go2rtc
+
+api:
+  listen: ":1984"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+
+ffmpeg:
+  bin: "ffmpeg"
+  # Suppress non-fatal HEVC missing POC reference warnings so go2rtc doesn't abort WebRTC sessions
+  global: "-hide_banner -v fatal"
+  rtsp: "-fflags nobuffer+discardcorrupt -flags low_delay -err_detect ignore_err -timeout {timeout} -user_agent go2rtc/ffmpeg -rtsp_flags prefer_tcp -i {input}"
+
+# Streams are dynamically registered on-demand via the Next.js API proxy
+# to ensure zero credentials leak to the browser or external network.
+streams: {}

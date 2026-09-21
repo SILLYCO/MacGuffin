@@ -16,6 +16,7 @@ import {
   ScrollText,
   Receipt,
   Network,
+  Video,
   X,
 } from "lucide-react";
 import { RoleBadge } from "@/components/ui/RoleBadge";
@@ -86,6 +87,11 @@ export function Sidebar({ user, isMobileOpen = false, onCloseMobile }: SidebarPr
       label: "Network & Topology",
       href: "/network",
       icon: Network,
+    },
+    {
+      label: "CCTV & Cameras",
+      href: "/cctv",
+      icon: Video,
     },
     {
       label: "Employees",
