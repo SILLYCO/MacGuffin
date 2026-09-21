@@ -279,7 +279,9 @@ export async function searchDvrRecordings(
 ): Promise<DvrRecordingFile[]> {
   const host = customHost || process.env.DVR_HOST || "192.168.1.114";
   const httpPort = customPort || process.env.DVR_HTTP_PORT || 80;
-  const baseUrl = `http://${host}:${httpPort}/cgi-bin/mediaFileFind.cgi`;
+  const baseUrl = process.env.DVR_HTTP_URL
+    ? `${process.env.DVR_HTTP_URL.replace(/\/+$/, "")}/cgi-bin/mediaFileFind.cgi`
+    : `http://${host}:${httpPort}/cgi-bin/mediaFileFind.cgi`;
 
   let objectId: string | null = null;
   const allRecordings: DvrRecordingFile[] = [];
@@ -361,7 +363,9 @@ export async function testDvrConnectivity(
 ): Promise<{ online: boolean; latencyMs: number; message: string }> {
   const host = customHost || process.env.DVR_HOST || "192.168.1.114";
   const httpPort = customPort || process.env.DVR_HTTP_PORT || 80;
-  const url = `http://${host}:${httpPort}/cgi-bin/magicBox.cgi?action=getSystemInfo`;
+  const url = process.env.DVR_HTTP_URL
+    ? `${process.env.DVR_HTTP_URL.replace(/\/+$/, "")}/cgi-bin/magicBox.cgi?action=getSystemInfo`
+    : `http://${host}:${httpPort}/cgi-bin/magicBox.cgi?action=getSystemInfo`;
 
   const startTime = Date.now();
   try {

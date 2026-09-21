@@ -44,3 +44,6 @@ Thumbs.db
 # Local database backups
 backups/
 
+# Cloudflare tunnel standalone binary
+cloudflared
+
