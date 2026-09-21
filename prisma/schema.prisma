@@ -108,6 +108,10 @@ enum AuditAction {
   NETWORK_DEVICE_DELETED
   NETWORK_PORT_PATCHED
   NETWORK_PORT_UNPATCHED
+  CCTV_STREAM_VIEWED
+  CCTV_PLAYBACK_VIEWED
+  CCTV_RECORDING_SEARCHED
+  CCTV_CONFIG_UPDATED
 }
 
 enum AuditEntityType {
@@ -121,6 +125,8 @@ enum AuditEntityType {
   CREDENTIAL
   NETWORK_DEVICE
   NETWORK_CONNECTION
+  CCTV_CAMERA
+  CCTV_DVR
 }
 
 model User {
@@ -399,6 +405,7 @@ enum NetworkDeviceType {
   ACCESS_POINT
   FIREWALL
   PATCH_PANEL
+  DVR_NVR
   OTHER
 }
 
@@ -447,6 +454,9 @@ model NetworkDevice {
   outgoingConnections NetworkConnection[] @relation("OriginDevice")
   // Uplink connections targeting this device from another switch/router
   incomingConnections NetworkConnection[] @relation("TargetNetworkDevice")
+
+  // Optional link to CCTV CameraDevice if this network device represents the physical DVR unit
+  cameraDevice        CameraDevice?
 
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
@@ -498,4 +508,46 @@ model NetworkConnection {
   @@index([targetPrinterId])
   @@index([targetNetworkDeviceId])
 }
+
+model CameraDevice {
+  id              String          @id @default(cuid())
+  name            String          // e.g. "Main Office DVR"
+  brand           String          @default("Advision (Dahua-compatible)")
+  model           String?         // e.g. "16-Channel 1080N DVR"
+  host            String          // e.g. "192.168.1.114"
+  rtspPort        Int             @default(554)
+  httpPort        Int             @default(80)
+  totalChannels   Int             @default(16)
+  location        String?         // e.g. "Server Rack A - Shelf 2"
+  enabled         Boolean         @default(true)
+  notes           String?
+
+  networkDeviceId String?         @unique
+  networkDevice   NetworkDevice?  @relation(fields: [networkDeviceId], references: [id], onDelete: SetNull)
+
+  channels        CameraChannel[]
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model CameraChannel {
+  id              String        @id @default(cuid())
+  cameraDeviceId  String
+  cameraDevice    CameraDevice  @relation(fields: [cameraDeviceId], references: [id], onDelete: Cascade)
+  channelNumber   Int           // 1..16
+  name            String        // e.g. "Main Entrance", "Server Room"
+  location        String?       // e.g. "Reception Area"
+  transcodeSub    Boolean       @default(false)
+  sortOrder       Int           @default(0)
+  enabled         Boolean       @default(true)
+  notes           String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([cameraDeviceId, channelNumber])
+  @@index([cameraDeviceId])
+}
+
 
