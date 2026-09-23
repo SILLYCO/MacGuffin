@@ -14,6 +14,9 @@ import {
   VideoOff,
   ChevronRight,
   Sparkles,
+  Ratio,
+  Maximize,
+  Camera,
 } from "lucide-react";
 import { CameraChannelWithDevice, DvrRecordingFile } from "@/lib/cctv/types";
 
@@ -44,7 +47,77 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const [hoverTime, setHoverTime] = useState<{ seconds: number; x: number } | null>(null);
+  const [aspectMode, setAspectMode] = useState<"16:9" | "raw" | "fill">("16:9");
+  const [snapshotSuccess, setSnapshotSuccess] = useState(false);
+
+  const cycleAspectMode = () => {
+    setAspectMode((prev) => {
+      if (prev === "16:9") return "raw";
+      if (prev === "raw") return "fill";
+      return "16:9";
+    });
+  };
+
+  const togglePlayerFullscreen = () => {
+    if (!playerContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      playerContainerRef.current.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  const takePlaybackSnapshot = () => {
+    if (!videoRef.current) return;
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement("canvas");
+      const isAnamorphic1080N =
+        video.videoWidth === 960 && video.videoHeight === 1080;
+
+      if (aspectMode === "16:9" || (aspectMode !== "raw" && isAnamorphic1080N)) {
+        canvas.width = 1920;
+        canvas.height = 1080;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, 1920, 1080);
+          const dataUrl = canvas.toDataURL("image/png");
+          const a = document.createElement("a");
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          a.href = dataUrl;
+          a.download = `cctv_playback_ch${selectedChannelNumber}_${timestamp}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          setSnapshotSuccess(true);
+          setTimeout(() => setSnapshotSuccess(false), 2000);
+        }
+      } else {
+        canvas.width = video.videoWidth || 1920;
+        canvas.height = video.videoHeight || 1080;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/png");
+          const a = document.createElement("a");
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          a.href = dataUrl;
+          a.download = `cctv_playback_ch${selectedChannelNumber}_${timestamp}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          setSnapshotSuccess(true);
+          setTimeout(() => setSnapshotSuccess(false), 2000);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to take playback snapshot:", err);
+    }
+  };
 
   const selectedChannel = useMemo(() => {
     return channels.find((c) => c.channelNumber === selectedChannelNumber);
@@ -175,14 +248,7 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
     [selectedChannelNumber, cleanupPlayback]
   );
 
-  // Play a specific clip
-  const playClip = (clip: DvrRecordingFile) => {
-    setActiveClip(clip);
-    setPlayheadSeconds(clip.startSeconds);
-    startPlaybackStream(clip.startTime, clip.endTime);
-  };
-
-  // Convert seconds to HH:MM:SS
+  // Convert seconds from midnight to HH:MM:SS format
   const formatSecondsToTime = (totalSeconds: number): string => {
     const s = Math.max(0, Math.min(86399, Math.floor(totalSeconds)));
     const hh = Math.floor(s / 3600).toString().padStart(2, "0");
@@ -190,6 +256,67 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
     const ss = (s % 60).toString().padStart(2, "0");
     return `${hh}:${mm}:${ss}`;
   };
+
+  // Seek to an absolute timestamp in seconds (0 to 86399) and negotiate stream
+  const seekTo = useCallback(
+    (targetSeconds: number) => {
+      const bounded = Math.max(0, Math.min(86399, Math.floor(targetSeconds)));
+      setPlayheadSeconds(bounded);
+
+      // Check if target falls into an existing recording
+      const matchedClip = recordings.find(
+        (r) => bounded >= r.startSeconds && bounded <= r.endSeconds
+      );
+
+      const startTimeStr = `${selectedDate} ${formatSecondsToTime(bounded)}`;
+      let endTimeStr = "";
+
+      if (matchedClip) {
+        setActiveClip(matchedClip);
+        endTimeStr = matchedClip.endTime;
+      } else if (
+        activeClip &&
+        bounded >= activeClip.startSeconds &&
+        bounded <= activeClip.endSeconds
+      ) {
+        endTimeStr = activeClip.endTime;
+      } else {
+        const endTimeSeconds = Math.min(86399, bounded + 900);
+        endTimeStr = `${selectedDate} ${formatSecondsToTime(endTimeSeconds)}`;
+        setActiveClip({
+          channel: selectedChannelNumber,
+          startTime: startTimeStr,
+          endTime: endTimeStr,
+          startSeconds: bounded,
+          endSeconds: endTimeSeconds,
+          length: endTimeSeconds - bounded,
+          type: "general",
+        });
+      }
+
+      startPlaybackStream(startTimeStr, endTimeStr);
+    },
+    [recordings, activeClip, selectedChannelNumber, selectedDate, startPlaybackStream]
+  );
+
+  // Play a specific clip from its beginning
+  const playClip = (clip: DvrRecordingFile) => {
+    setActiveClip(clip);
+    setPlayheadSeconds(clip.startSeconds);
+    startPlaybackStream(clip.startTime, clip.endTime);
+  };
+
+  // Advance playhead in real time while playback stream is playing
+  useEffect(() => {
+    if (!isPlaying || playbackLoading) return;
+    const interval = setInterval(() => {
+      setPlayheadSeconds((prev) => {
+        if (prev >= 86399) return 86399;
+        return prev + 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPlaying, playbackLoading]);
 
   // Timeline click to seek
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -199,33 +326,7 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
     const ratio = Math.max(0, Math.min(1, clickX / rect.width));
     const clickedSeconds = Math.floor(ratio * 86400);
 
-    setPlayheadSeconds(clickedSeconds);
-
-    // Find if click landed on an existing recording clip
-    const matchedClip = recordings.find(
-      (r) => clickedSeconds >= r.startSeconds && clickedSeconds <= r.endSeconds
-    );
-
-    if (matchedClip) {
-      playClip(matchedClip);
-    } else {
-      // Create a 15-minute on-demand playback window from clicked timestamp
-      const startTimeStr = `${selectedDate} ${formatSecondsToTime(clickedSeconds)}`;
-      const endTimeSeconds = Math.min(86399, clickedSeconds + 900);
-      const endTimeStr = `${selectedDate} ${formatSecondsToTime(endTimeSeconds)}`;
-
-      setActiveClip({
-        channel: selectedChannelNumber,
-        startTime: startTimeStr,
-        endTime: endTimeStr,
-        startSeconds: clickedSeconds,
-        endSeconds: endTimeSeconds,
-        length: endTimeSeconds - clickedSeconds,
-        type: "general",
-      });
-
-      startPlaybackStream(startTimeStr, endTimeStr);
-    }
+    seekTo(clickedSeconds);
   };
 
   // Timeline mouse hover time indicator
@@ -308,11 +409,20 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
       {/* Main Playback Area: Video Player & Clips List */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Left 2 Cols: Video Player */}
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80 shadow-xl lg:col-span-2">
-          <div className="relative aspect-video w-full bg-black">
+        <div
+          ref={playerContainerRef}
+          className="flex flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80 shadow-xl lg:col-span-2"
+        >
+          <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-black">
             <video
               ref={videoRef}
-              className="h-full w-full object-contain"
+              className={`max-h-full max-w-full transition-all duration-150 ${
+                aspectMode === "16:9"
+                  ? "aspect-video h-auto w-auto object-fill"
+                  : aspectMode === "fill"
+                  ? "h-full w-full object-cover"
+                  : "max-h-full max-w-full object-contain"
+              }`}
               playsInline
               autoPlay
             />
@@ -368,6 +478,13 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                  <span className="rounded bg-slate-800/90 px-2 py-0.5 font-mono text-[10px] text-slate-300 ring-1 ring-slate-700">
+                    {aspectMode === "16:9"
+                      ? "16:9 Widescreen"
+                      : aspectMode === "fill"
+                      ? "Fill Screen"
+                      : "Original Raw"}
+                  </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-indigo-950/80 px-2 py-0.5 text-[10px] font-medium text-indigo-300 ring-1 ring-indigo-500/30">
                     <Sparkles className="h-3 w-3" /> H.264 Playback Transcode
                   </span>
@@ -377,7 +494,7 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
           </div>
 
           {/* Player controls */}
-          <div className="flex items-center justify-between border-t border-slate-800 bg-slate-900/90 px-4 py-3 text-xs text-slate-300">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 bg-slate-900/90 px-4 py-3 text-xs text-slate-300">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -399,22 +516,20 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
 
               <button
                 type="button"
-                onClick={() => {
-                  if (videoRef.current) videoRef.current.currentTime -= 10;
-                }}
+                onClick={() => seekTo(playheadSeconds - 10)}
+                disabled={playbackLoading}
                 title="Rewind 10 seconds"
-                className="rounded p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                className="rounded p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white disabled:opacity-40"
               >
                 <RotateCcw className="h-4 w-4" />
               </button>
 
               <button
                 type="button"
-                onClick={() => {
-                  if (videoRef.current) videoRef.current.currentTime += 10;
-                }}
+                onClick={() => seekTo(playheadSeconds + 10)}
+                disabled={playbackLoading}
                 title="Forward 10 seconds"
-                className="rounded p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                className="rounded p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white disabled:opacity-40"
               >
                 <RotateCw className="h-4 w-4" />
               </button>
@@ -424,11 +539,60 @@ export function PlaybackTimelineView({ channels }: PlaybackTimelineViewProps) {
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Aspect Ratio Switcher Button */}
+              <button
+                type="button"
+                onClick={cycleAspectMode}
+                title={`Playback Aspect Ratio: ${
+                  aspectMode === "16:9"
+                    ? "16:9 Widescreen (Corrected)"
+                    : aspectMode === "fill"
+                    ? "Fill Screen"
+                    : "Original Raw"
+                } (Click to toggle)`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700 hover:text-white"
+              >
+                <Ratio className="h-3.5 w-3.5 text-indigo-400" />
+                <span>
+                  {aspectMode === "16:9"
+                    ? "16:9 Widescreen"
+                    : aspectMode === "fill"
+                    ? "Fill Screen"
+                    : "Original"}
+                </span>
+              </button>
+
+              {/* Snapshot Button */}
+              <button
+                type="button"
+                onClick={takePlaybackSnapshot}
+                disabled={!activeClip}
+                title="Capture Playback Snapshot Frame"
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                  snapshotSuccess
+                    ? "border-emerald-500 bg-emerald-500/20 text-emerald-300"
+                    : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-40"
+                }`}
+              >
+                <Camera className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{snapshotSuccess ? "Saved!" : "Snapshot"}</span>
+              </button>
+
+              {/* Fullscreen Button */}
+              <button
+                type="button"
+                onClick={togglePlayerFullscreen}
+                title="Toggle Fullscreen"
+                className="rounded-lg border border-slate-700 bg-slate-800 p-1.5 text-slate-300 transition hover:bg-slate-700 hover:text-white"
+              >
+                <Maximize className="h-3.5 w-3.5" />
+              </button>
+
               {activeClip && (
-                <div className="text-right text-[11px] text-slate-400">
-                  <span>Clip Duration: </span>
-                  <span className="font-medium text-slate-200">{Math.round(activeClip.length / 60)} min</span>
+                <div className="hidden sm:block text-right text-[11px] text-slate-400 pl-2 border-l border-slate-800">
+                  <span>Clip: </span>
+                  <span className="font-medium text-slate-200">{Math.round(activeClip.length / 60)}m</span>
                 </div>
               )}
             </div>

@@ -13,6 +13,7 @@ import {
   VideoOff,
   MapPin,
   Sparkles,
+  Ratio,
 } from "lucide-react";
 import { useWebRtcStream } from "./useWebRtcStream";
 import { CameraChannelWithDevice } from "@/lib/cctv/types";
@@ -32,6 +33,7 @@ export function FullScreenModal({
 }: FullScreenModalProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [snapshotSuccess, setSnapshotSuccess] = useState(false);
+  const [aspectMode, setAspectMode] = useState<"16:9" | "raw" | "fill">("16:9");
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Connect to HD main-stream
@@ -41,7 +43,15 @@ export function FullScreenModal({
     enabled: channel.enabled,
   });
 
-  // Handle keyboard navigation: Esc to close, Arrow keys to navigate
+  const cycleAspectMode = () => {
+    setAspectMode((prev) => {
+      if (prev === "16:9") return "raw";
+      if (prev === "raw") return "fill";
+      return "16:9";
+    });
+  };
+
+  // Handle keyboard navigation: Esc to close, Arrow keys to navigate, 'A' to toggle aspect ratio
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -50,6 +60,8 @@ export function FullScreenModal({
         navigatePrevious();
       } else if (e.key === "ArrowRight") {
         navigateNext();
+      } else if (e.key === "a" || e.key === "A") {
+        cycleAspectMode();
       }
     };
 
@@ -76,22 +88,45 @@ export function FullScreenModal({
     try {
       const video = videoRef.current;
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 1920;
-      canvas.height = video.videoHeight || 1080;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/png");
-        const a = document.createElement("a");
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-        a.href = dataUrl;
-        a.download = `cctv_ch${channel.channelNumber}_${timestamp}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      const isAnamorphic1080N =
+        video.videoWidth === 960 && video.videoHeight === 1080;
 
-        setSnapshotSuccess(true);
-        setTimeout(() => setSnapshotSuccess(false), 2000);
+      if (aspectMode === "16:9" || (aspectMode !== "raw" && isAnamorphic1080N)) {
+        canvas.width = 1920;
+        canvas.height = 1080;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, 1920, 1080);
+          const dataUrl = canvas.toDataURL("image/png");
+          const a = document.createElement("a");
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          a.href = dataUrl;
+          a.download = `cctv_ch${channel.channelNumber}_${timestamp}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          setSnapshotSuccess(true);
+          setTimeout(() => setSnapshotSuccess(false), 2000);
+        }
+      } else {
+        canvas.width = video.videoWidth || 1920;
+        canvas.height = video.videoHeight || 1080;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/png");
+          const a = document.createElement("a");
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          a.href = dataUrl;
+          a.download = `cctv_ch${channel.channelNumber}_${timestamp}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          setSnapshotSuccess(true);
+          setTimeout(() => setSnapshotSuccess(false), 2000);
+        }
       }
     } catch (err) {
       console.error("Failed to take video snapshot:", err);
@@ -116,7 +151,7 @@ export function FullScreenModal({
         className="relative flex h-full max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl"
       >
         {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-slate-800/80 bg-slate-900/90 px-5 py-3 text-slate-100 backdrop-blur">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-800/80 bg-slate-900/90 px-5 py-3 text-slate-100 backdrop-blur">
           <div className="flex items-center gap-3">
             <span className="flex h-7 items-center justify-center rounded-md bg-indigo-600 px-2 font-mono text-xs font-bold text-white shadow-sm">
               CH {channel.channelNumber.toString().padStart(2, "0")}
@@ -144,6 +179,28 @@ export function FullScreenModal({
                 LIVE STREAMING
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={cycleAspectMode}
+              title={`Aspect Ratio: ${
+                aspectMode === "16:9"
+                  ? "16:9 Widescreen (Corrected)"
+                  : aspectMode === "fill"
+                  ? "Fill Screen"
+                  : "Original Raw"
+              } (Press 'A' to toggle)`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700 hover:text-white"
+            >
+              <Ratio className="h-3.5 w-3.5 text-indigo-400" />
+              <span className="hidden sm:inline">
+                {aspectMode === "16:9"
+                  ? "16:9 Widescreen"
+                  : aspectMode === "fill"
+                  ? "Fill Screen"
+                  : "Original"}
+              </span>
+            </button>
 
             <button
               type="button"
@@ -180,10 +237,16 @@ export function FullScreenModal({
         </div>
 
         {/* Video Stage with Left/Right Nav Buttons */}
-        <div className="relative flex-1 bg-black">
+        <div className="relative flex flex-1 min-h-0 w-full items-center justify-center overflow-hidden bg-black p-1 sm:p-2">
           <video
             ref={videoRef}
-            className="h-full w-full object-contain"
+            className={`max-h-full max-w-full transition-all duration-150 ${
+              aspectMode === "16:9"
+                ? "aspect-video h-auto w-auto object-fill"
+                : aspectMode === "fill"
+                ? "h-full w-full object-cover"
+                : "max-h-full max-w-full object-contain"
+            }`}
             autoPlay
             playsInline
             muted={isMuted}
@@ -248,7 +311,7 @@ export function FullScreenModal({
         </div>
 
         {/* Bottom Status & Info Bar */}
-        <div className="flex items-center justify-between border-t border-slate-800/80 bg-slate-900/90 px-5 py-2.5 text-xs text-slate-400 backdrop-blur">
+        <div className="flex flex-shrink-0 items-center justify-between border-t border-slate-800/80 bg-slate-900/90 px-5 py-2.5 text-xs text-slate-400 backdrop-blur">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -275,6 +338,17 @@ export function FullScreenModal({
           </div>
 
           <div className="flex items-center gap-3 font-mono text-[11px] text-slate-500">
+            <span>
+              Aspect:{" "}
+              <strong className="font-semibold text-slate-300">
+                {aspectMode === "16:9"
+                  ? "16:9 Widescreen"
+                  : aspectMode === "fill"
+                  ? "Fill"
+                  : "Original Raw"}
+              </strong>
+            </span>
+            <span>•</span>
             <span>DVR: {channel.cameraDevice.host}</span>
             <span>•</span>
             <span>RTSP 554</span>
